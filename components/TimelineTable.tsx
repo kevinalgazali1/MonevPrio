@@ -1,7 +1,7 @@
 "use client";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { X, Save, Upload } from "lucide-react";
 import { getCookie } from "cookies-next";
 import toast from "react-hot-toast";
@@ -11,7 +11,6 @@ function decodeJwtPayload(token: string): Record<string, any> | null {
   try {
     const base64 = token.split(".")[1];
     if (!base64) return null;
-    // Tambahkan padding jika perlu
     const padded = base64.replace(/-/g, "+").replace(/_/g, "/").padEnd(
       base64.length + ((4 - (base64.length % 4)) % 4),
       "=",
@@ -53,13 +52,7 @@ interface Pengadaan {
 interface TimelineTableProps {
   namaProgram?: string;
   pengadaanList?: Pengadaan[];
-  filterStatus?: string; // "semua" | "aman" | "terlambat"
-  /**
-   * activeTab dari Sidebar:
-   *  - "semua"                        → tampilkan semua
-   *  - "pengadaan-{id}"               → tampilkan semua tahapan dalam pengadaan tsb
-   *  - "tahapan-{pengId}-{tahId}"     → tampilkan 1 tahapan spesifik
-   */
+  filterStatus?: string;
   activeTab?: string;
 }
 
@@ -309,21 +302,41 @@ function PlanModal({ tahapan, onClose }: { tahapan: Tahapan; onClose: () => void
       const token = getCookie("accessToken");
       if (!token) { toast.error("Session habis, silakan login ulang"); return; }
 
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_API}/staff/progres/${tahapan.progres.idProgres}/planning`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({
-            planningTanggalMulai: formatToMMDDYYYY(mulai),
-            planningTanggalSelesai: formatToMMDDYYYY(selesai),
-          }),
-        },
-      );
+      const body = JSON.stringify({
+        planningTanggalMulai: formatToMMDDYYYY(mulai),
+        planningTanggalSelesai: formatToMMDDYYYY(selesai),
+      });
+      const headers = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
 
-      const result = await res.json();
-      if (!res.ok) throw new Error(result?.msg || "Gagal update planning");
-      toast.success(result.msg || "Berhasil mengatur ulang jadwal planning");
+      const [resStaff, resMaster] = await Promise.all([
+        fetch(
+          `${process.env.NEXT_PUBLIC_BACKEND_API}/staff/progres/${tahapan.progres.idProgres}/planning`,
+          { method: "PATCH", headers, body },
+        ),
+        fetch(
+          `https://sulsel.cloud/api/master/progres/${tahapan.progres.idProgres}/planning`,
+          { method: "PATCH", headers, body },
+        ),
+      ]);
+
+      const resultStaff = await resStaff.json().catch(() => ({}));
+      const resultMaster = await resMaster.json().catch(() => ({}));
+
+      if (!resStaff.ok && !resMaster.ok) {
+        throw new Error(resultStaff?.msg || resultMaster?.msg || "Gagal update planning");
+      }
+      // Tampilkan warning jika salah satu gagal
+      if (resStaff.ok && !resMaster.ok && resultMaster?.msg) {
+        toast(`Master: ${resultMaster.msg}`, { icon: "⚠️" });
+      }
+      if (!resStaff.ok && resMaster.ok && resultStaff?.msg) {
+        toast(`Staff: ${resultStaff.msg}`, { icon: "⚠️" });
+      }
+      const successMsg =
+        (resStaff.ok ? resultStaff?.msg : null) ||
+        (resMaster.ok ? resultMaster?.msg : null) ||
+        "Berhasil mengatur ulang jadwal planning";
+      toast.success(successMsg);
       onClose();
       window.location.reload();
     } catch (err: any) {
@@ -375,21 +388,47 @@ function UpdateModal({ tahapan, onClose }: { tahapan: Tahapan; onClose: () => vo
       const token = getCookie("accessToken");
       if (!token) { toast.dismiss(loadingToast); toast.error("Session habis, silakan login ulang"); return; }
 
-      const formData = new FormData();
-      formData.append("aktualTanggalMulai", formatToMMDDYYYY(formatDateForInput(tahapan.progres.planningTanggalMulai)));
-      formData.append("aktualTanggalSelesai", formatToMMDDYYYY(selesai));
-      if (keterangan.trim()) formData.append("keterangan", keterangan);
-      if (selectedFile) formData.append("dokumen", selectedFile);
+      const buildFormData = () => {
+        const fd = new FormData();
+        fd.append("aktualTanggalMulai", formatToMMDDYYYY(formatDateForInput(tahapan.progres.planningTanggalMulai)));
+        fd.append("aktualTanggalSelesai", formatToMMDDYYYY(selesai));
+        if (keterangan.trim()) fd.append("keterangan", keterangan);
+        if (selectedFile) fd.append("dokumen", selectedFile);
+        return fd;
+      };
 
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_API}/staff/progres/${tahapan.progres.idProgres}/aktual`,
-        { method: "PATCH", headers: { Authorization: `Bearer ${token}` }, body: formData },
-      );
+      const authHeader = { Authorization: `Bearer ${token}` };
 
-      const result = await res.json();
+      const [resStaff, resMaster] = await Promise.all([
+        fetch(
+          `${process.env.NEXT_PUBLIC_BACKEND_API}/staff/progres/${tahapan.progres.idProgres}/aktual`,
+          { method: "PATCH", headers: authHeader, body: buildFormData() },
+        ),
+        fetch(
+          `https://sulsel.cloud/api/master/progres/${tahapan.progres.idProgres}/aktual`,
+          { method: "PATCH", headers: authHeader, body: buildFormData() },
+        ),
+      ]);
+
+      const resultStaff = await resStaff.json().catch(() => ({}));
+      const resultMaster = await resMaster.json().catch(() => ({}));
+
       toast.dismiss(loadingToast);
-      if (!res.ok) throw new Error(result?.msg || "Gagal menyimpan aktual");
-      toast.success(result.msg || "Berhasil menyimpan data aktual");
+      if (!resStaff.ok && !resMaster.ok) {
+        throw new Error(resultStaff?.msg || resultMaster?.msg || "Gagal menyimpan aktual");
+      }
+      // Tampilkan warning jika salah satu gagal
+      if (resStaff.ok && !resMaster.ok && resultMaster?.msg) {
+        toast(`Master: ${resultMaster.msg}`, { icon: "⚠️" });
+      }
+      if (!resStaff.ok && resMaster.ok && resultStaff?.msg) {
+        toast(`Staff: ${resultStaff.msg}`, { icon: "⚠️" });
+      }
+      const successMsg =
+        (resStaff.ok ? resultStaff?.msg : null) ||
+        (resMaster.ok ? resultMaster?.msg : null) ||
+        "Berhasil menyimpan data aktual";
+      toast.success(successMsg);
       onClose();
       window.location.reload();
     } catch (err: any) {
@@ -476,15 +515,19 @@ export default function TimelineTable({
 }: TimelineTableProps) {
   const [modal, setModal] = useState<{ type: ModalType; tahapan: Tahapan } | null>(null);
 
-  // ─── Decode JWT → ambil role (computed langsung, tanpa useEffect) ────────────
-  const isStaff = (() => {
+  // ─── Decode JWT → ambil role ─────────────────────────────────────────────────
+  // Sembunyikan tombol PLAN & ACTUAL hanya untuk role "gubernur"
+  const isGubernur = (() => {
     const token = getCookie("accessToken");
     if (!token || typeof token !== "string") return false;
     const payload = decodeJwtPayload(token);
     const role: string =
       payload?.role ?? payload?.roles ?? payload?.user?.role ?? "";
-    return role.toLowerCase() === "staff";
+    return role.toLowerCase() === "gubernur";
   })();
+
+  // Tampilkan tombol untuk semua role KECUALI gubernur
+  const canEditTimeline = !isGubernur;
 
   // ─── Step 1: Filter by sidebar activeTab ────────────────────────────────────
   let tabFilteredList = pengadaanList;
@@ -493,7 +536,7 @@ export default function TimelineTable({
     const pengId = parseInt(activeTab.replace("pengadaan-", ""), 10);
     tabFilteredList = pengadaanList.filter((p) => p.id === pengId);
   } else if (activeTab.startsWith("tahapan-")) {
-    const parts = activeTab.split("-"); // ["tahapan", pengId, tahId]
+    const parts = activeTab.split("-");
     const pengId = parseInt(parts[1], 10);
     const tahId = parseInt(parts[2], 10);
     tabFilteredList = pengadaanList
@@ -518,9 +561,30 @@ export default function TimelineTable({
           }))
           .filter((pengadaan) => pengadaan.tahapanList.length > 0);
 
-  // Columns always based on full list so range stays stable
   const columns = buildTimelineColumns(pengadaanList.length > 0 ? pengadaanList : filteredPengadaanList);
   const monthGroups = groupByMonth(columns);
+
+  // ─── Hitung lebar kolom dinamis berdasarkan jumlah bulan ────────────────────
+  // Jika data >= 6 bulan (~24 kolom minggu), pakai lebar lebih kecil agar muat
+  // Tetap ada min-width agar teks tidak terlalu sempit
+  const totalMonths = monthGroups.length;
+  const colMinWidth = totalMonths >= 10 ? 28 : totalMonths >= 6 ? 32 : 36;
+
+  // ─── Sync scroll: header dan body scroll horizontal bersamaan ───────────────
+  const headerScrollRef = useRef<HTMLDivElement>(null);
+  const bodyScrollRef = useRef<HTMLDivElement>(null);
+
+  function onHeaderScroll() {
+    if (bodyScrollRef.current && headerScrollRef.current) {
+      bodyScrollRef.current.scrollLeft = headerScrollRef.current.scrollLeft;
+    }
+  }
+
+  function onBodyScroll() {
+    if (headerScrollRef.current && bodyScrollRef.current) {
+      headerScrollRef.current.scrollLeft = bodyScrollRef.current.scrollLeft;
+    }
+  }
 
   return (
     <>
@@ -534,15 +598,16 @@ export default function TimelineTable({
                 : "Tidak ada tahapan dengan status Terlambat"}
           </div>
         ) : (
-          /*
-           * Wrapper: relative + max-height → header sticky, body scrolls
-           * overflow-hidden pada wrapper agar border-radius tetap
-           */
           <div className="rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-            {/* ── Sticky Header wrapper (no scroll) ── */}
-            <div className="overflow-x-auto">
+            {/* ── Sticky Header: scroll horizontal sinkron dengan body ── */}
+            <div
+              ref={headerScrollRef}
+              onScroll={onHeaderScroll}
+              className="overflow-x-auto"
+              style={{ scrollbarWidth: "none" }}
+            >
               <table className="min-w-full text-sm border-collapse">
-                <thead className="sticky top-0 z-10 bg-gray-100">
+                <thead className="bg-gray-100">
                   <tr>
                     <th
                       rowSpan={2}
@@ -570,7 +635,8 @@ export default function TimelineTable({
                     {columns.map((col, i) => (
                       <th
                         key={i}
-                        className="border border-gray-200 py-1 px-1 text-xs font-medium text-gray-500 bg-gray-50 text-center w-10 min-w-[36px]"
+                        className="border border-gray-200 py-1 px-1 text-xs font-medium text-gray-500 bg-gray-50 text-center"
+                        style={{ width: colMinWidth, minWidth: colMinWidth }}
                       >
                         {col.label}
                       </th>
@@ -580,8 +646,10 @@ export default function TimelineTable({
               </table>
             </div>
 
-            {/* ── Scrollable Body ── */}
+            {/* ── Scrollable Body: scroll horizontal + vertikal ── */}
             <div
+              ref={bodyScrollRef}
+              onScroll={onBodyScroll}
               className="overflow-x-auto overflow-y-auto"
               style={{ maxHeight: "60vh" }}
             >
@@ -597,7 +665,11 @@ export default function TimelineTable({
                   </tr>
                   <tr>
                     {columns.map((_, i) => (
-                      <th key={i} className="border border-gray-200 py-1 px-1 w-10 min-w-[36px]" />
+                      <th
+                        key={i}
+                        className="border border-gray-200 py-1 px-1"
+                        style={{ width: colMinWidth, minWidth: colMinWidth }}
+                      />
                     ))}
                   </tr>
                 </thead>
@@ -662,6 +734,7 @@ export default function TimelineTable({
                                     {tahapan.namaTahapan}
                                   </div>
                                   <div className="flex gap-1 mt-2">
+                                    {/* Tombol PDF selalu tampil untuk semua role */}
                                     <button
                                       onClick={() => handleOpenPDF(tahapan.progres.dokumenBukti)}
                                       disabled={!tahapan.progres.dokumenBukti?.length}
@@ -673,7 +746,8 @@ export default function TimelineTable({
                                     >
                                       PDF
                                     </button>
-                                    {isStaff && (
+                                    {/* Tombol PLAN & ACTUAL disembunyikan khusus untuk gubernur */}
+                                    {canEditTimeline && (
                                       <>
                                         <button
                                           onClick={() => setModal({ type: "plan", tahapan })}

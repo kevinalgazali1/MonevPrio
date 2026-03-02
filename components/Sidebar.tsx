@@ -26,6 +26,7 @@ interface Pengadaan {
   namaTransaksi: string;
   jenisPengadaan: string;
   title: string;
+  anggaran: number;
   tahapanList: Tahapan[];
 }
 
@@ -37,6 +38,18 @@ interface SidebarProps {
   setSidebarOpen: (v: boolean) => void;
 }
 
+const formatRupiahCompact = (value: number): string => {
+  if (value >= 1_000_000_000_000)
+    return `Rp ${(value / 1_000_000_000_000).toLocaleString("id-ID", { maximumFractionDigits: 2 })} T`;
+  if (value >= 1_000_000_000)
+    return `Rp ${(value / 1_000_000_000).toLocaleString("id-ID", { maximumFractionDigits: 2 })} M`;
+  if (value >= 1_000_000)
+    return `Rp ${(value / 1_000_000).toLocaleString("id-ID", { maximumFractionDigits: 2 })} Jt`;
+  if (value >= 1_000)
+    return `Rp ${(value / 1_000).toLocaleString("id-ID", { maximumFractionDigits: 2 })} Rb`;
+  return `Rp ${value.toLocaleString("id-ID")}`;
+};
+
 export default function Sidebar({
   pengadaanList = [],
   activeTab,
@@ -45,9 +58,7 @@ export default function Sidebar({
   setSidebarOpen,
 }: SidebarProps) {
   const router = useRouter();
-  const [openDropdowns, setOpenDropdowns] = useState<Record<number, boolean>>(
-    {},
-  );
+  const [openDropdowns, setOpenDropdowns] = useState<Record<number, boolean>>({});
 
   const toggleDropdown = (id: number) => {
     setOpenDropdowns((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -86,7 +97,7 @@ export default function Sidebar({
           </div>
 
           <nav className="px-4 space-y-1">
-            {/* Dashboard — reset ke "semua" */}
+            {/* Dashboard */}
             <button
               onClick={() => {
                 onTabChange?.("semua");
@@ -127,13 +138,25 @@ export default function Sidebar({
                       <span className="truncate font-semibold">
                         {pengadaan.jenisPengadaan}
                       </span>
-                      <span className="text-xs">{pengadaan.title}</span>
+                      <span className="text-xs opacity-80">
+                        {pengadaan.title}
+                      </span>
+                      {/* Anggaran dalam format rupiah compact */}
+                      <span
+                        className={`text-xs font-bold mt-0.5 ${
+                          activeTab === `pengadaan-${pengadaan.id}`
+                            ? "text-white/90"
+                            : "text-[#CB0E0E]"
+                        }`}
+                      >
+                        {formatRupiahCompact(pengadaan.anggaran)}
+                      </span>
                     </div>
                   </div>
                   {openDropdowns[pengadaan.id] ? (
-                    <ChevronDown size={14} />
+                    <ChevronDown size={14} className="shrink-0" />
                   ) : (
-                    <ChevronRight size={14} />
+                    <ChevronRight size={14} className="shrink-0" />
                   )}
                 </button>
 
@@ -154,9 +177,7 @@ export default function Sidebar({
                           <span className="w-4 h-4 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-[9px] font-bold shrink-0">
                             {tahapan.noUrut}
                           </span>
-                          <span className="truncate">
-                            {tahapan.namaTahapan}
-                          </span>
+                          <span className="truncate">{tahapan.namaTahapan}</span>
                         </button>
                       );
                     })}

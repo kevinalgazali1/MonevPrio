@@ -78,7 +78,9 @@ function getTahapanBarStatus(tahapan: Tahapan): "aman" | "terlambat" | "none" {
         : "terlambat";
     }
     if (planningTanggalSelesai) {
-      return new Date() > new Date(planningTanggalSelesai) ? "terlambat" : "aman";
+      return new Date() > new Date(planningTanggalSelesai)
+        ? "terlambat"
+        : "aman";
     }
     return "aman";
   }
@@ -92,8 +94,12 @@ function getTahapanBarStatus(tahapan: Tahapan): "aman" | "terlambat" | "none" {
 
 // ─── Component ──────────────────────────────────────────────────────────────────
 
-export default function MonitoringProgramPage() {
-  const { slug, subSlug } = useParams() as { slug: string; subSlug: string };
+export default function AdminMonitoringProgramPage() {
+  const { dinasId, slug, subSlug } = useParams() as {
+    dinasId: string;
+    slug: string;
+    subSlug: string;
+  };
 
   const [program, setProgram] = useState<ProgramDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -113,7 +119,7 @@ export default function MonitoringProgramPage() {
     try {
       const token = getCookie("accessToken");
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_API}/staff/program/${subSlug}`,
+        `${process.env.NEXT_PUBLIC_BACKEND_API}/master/program/${subSlug}`,
         { headers: { Authorization: `Bearer ${token}` } },
       );
       const json = await res.json();
@@ -175,7 +181,9 @@ export default function MonitoringProgramPage() {
           Pengadaan: pengadaan.namaTransaksi,
           Tahapan: tahapan.namaTahapan,
           "Planning Mulai": formatDate(tahapan.progres.planningTanggalMulai),
-          "Planning Selesai": formatDate(tahapan.progres.planningTanggalSelesai),
+          "Planning Selesai": formatDate(
+            tahapan.progres.planningTanggalSelesai,
+          ),
           "Aktual Mulai": formatDate(tahapan.progres.aktualTanggalMulai),
           "Aktual Selesai": formatDate(tahapan.progres.aktualTanggalSelesai),
           Status: status,
@@ -201,7 +209,11 @@ export default function MonitoringProgramPage() {
       wch: Math.max(
         key.length,
         ...data.map((row) =>
-          row[key] instanceof Date ? 12 : row[key] ? row[key].toString().length : 10,
+          row[key] instanceof Date
+            ? 12
+            : row[key]
+              ? row[key].toString().length
+              : 10,
         ),
       ),
     }));
@@ -209,7 +221,10 @@ export default function MonitoringProgramPage() {
 
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Timeline");
-    XLSX.writeFile(workbook, `Timeline-${program.slug}-${new Date().toISOString().slice(0, 10)}.xlsx`);
+    XLSX.writeFile(
+      workbook,
+      `Timeline-${program.slug}-${new Date().toISOString().slice(0, 10)}.xlsx`,
+    );
   };
 
   // ─── Render ───────────────────────────────────────────────────────────────────
@@ -235,7 +250,10 @@ export default function MonitoringProgramPage() {
         {/* ── Topbar ── */}
         <div className="flex justify-end items-center gap-4">
           <div className="relative">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <Search
+              size={16}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            />
             <input
               type="text"
               placeholder="cari item"
@@ -246,7 +264,7 @@ export default function MonitoringProgramPage() {
           </div>
 
           <Link
-            href={`/monitoring-staff/${slug}/${subSlug}/arsip`}
+            href={`/monitoring-staff-master/${dinasId}/${slug}/${subSlug}/arsip`}
             className="flex items-center gap-2 bg-[#CB0E0E] text-white hover:bg-red-900 px-4 py-2 rounded-lg transition-all"
           >
             <Upload size={16} />
@@ -260,7 +278,9 @@ export default function MonitoringProgramPage() {
             <Building2 className="text-gray-500 shrink-0" />
             <div>
               <p className="text-xs text-gray-500">TOTAL PROYEK</p>
-              <p className="text-lg font-bold">{loading ? "—" : pengadaanList.length}</p>
+              <p className="text-lg font-bold">
+                {loading ? "—" : pengadaanList.length}
+              </p>
             </div>
           </div>
 
@@ -278,7 +298,9 @@ export default function MonitoringProgramPage() {
             <AlertTriangle className="text-red-500 shrink-0" />
             <div>
               <p className="text-xs text-gray-500">KENDALA</p>
-              <p className="text-lg font-bold">{loading ? "—" : totalKendala}</p>
+              <p className="text-lg font-bold">
+                {loading ? "—" : totalKendala}
+              </p>
             </div>
           </div>
 
@@ -302,7 +324,7 @@ export default function MonitoringProgramPage() {
                     Memuat...
                   </span>
                 ) : (
-                  program?.namaProgram ?? "—"
+                  (program?.namaProgram ?? "—")
                 )}
               </h1>
               <p className="text-gray-500 text-sm mt-1">

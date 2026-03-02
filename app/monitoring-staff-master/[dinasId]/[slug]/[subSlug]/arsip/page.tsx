@@ -14,7 +14,7 @@ interface DocumentItem {
   createdAt: string;
 }
 
-export default function ArsipDigitalProgram() {
+export default function AdminArsipDigitalProgram() {
   const [dragOver, setDragOver] = useState<boolean>(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [documents, setDocuments] = useState<DocumentItem[]>([]);
@@ -36,7 +36,7 @@ export default function ArsipDigitalProgram() {
       const token = getCookie("accessToken");
 
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_API}/staff/program/${subSlug}/dokumen`,
+        `${process.env.NEXT_PUBLIC_BACKEND_API}/master/program/${subSlug}/dokumen`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -86,7 +86,7 @@ export default function ArsipDigitalProgram() {
       formData.append("dokumen", uploadedFile);
 
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_API}/staff/program/${subSlug}/dokumen`,
+        `${process.env.NEXT_PUBLIC_BACKEND_API}/master/program/${subSlug}/dokumen`,
         {
           method: "POST",
           headers: {

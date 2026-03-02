@@ -16,20 +16,24 @@ interface PengadaanResponse {
   data: PengadaanItem[];
 }
 
-export const getMetodePengadaan = async (): Promise<
-  MetodePengadaanOption[]
-> => {
+type RoleType = "staff" | "admin";
+
+export const getMetodePengadaan = async (
+  role: RoleType
+): Promise<MetodePengadaanOption[]> => {
   try {
     const token = getCookie("accessToken");
 
-    const res = await fetch(
-      "https://sulsel.cloud/api/staff/pengadaan",
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
+    const endpointMap: Record<RoleType, string> = {
+      staff: "https://sulsel.cloud/api/staff/pengadaan",
+      admin: "https://sulsel.cloud/api/master/pengadaan",
+    };
+
+    const res = await fetch(endpointMap[role], {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
 
     if (!res.ok) {
       throw new Error("Gagal mengambil data pengadaan");

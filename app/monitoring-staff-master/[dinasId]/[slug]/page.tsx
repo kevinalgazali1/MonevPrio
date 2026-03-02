@@ -5,11 +5,14 @@ import { useParams, useRouter } from "next/navigation";
 import { getCookie } from "cookies-next";
 import toast from "react-hot-toast";
 import Link from "next/link";
+import SidebarAdmin from "@/components/SidebarAdmin";
 import {
   getMetodePengadaan,
   MetodePengadaanOption,
 } from "@/services/metodePengadaan";
-import MultiSelectMetode, { SelectedMetode } from "@/components/MultiSelectMetode";
+import MultiSelectMetode, {
+  SelectedMetode,
+} from "@/components/MultiSelectMetode";
 import {
   Search,
   Plus,
@@ -38,18 +41,20 @@ interface CreateProgramResponse {
   };
 }
 
-export default function StaffProgramPage() {
+export default function AdminProgramPage() {
   const [open, setOpen] = useState(false);
-  const [metodeOptions, setMetodeOptions] = useState<MetodePengadaanOption[]>([]);
+  const [metodeOptions, setMetodeOptions] = useState<MetodePengadaanOption[]>(
+    [],
+  );
   const [programList, setProgramList] = useState<ProgramItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [namaProgram, setNamaProgram] = useState("");
   const [metode, setMetode] = useState<SelectedMetode[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-
   const params = useParams();
   const router = useRouter();
+  const dinasId = Number(params?.dinasId);
   const slug = params?.slug as string;
 
   const slugify = (text: string) =>
@@ -69,8 +74,8 @@ export default function StaffProgramPage() {
     try {
       const token = getCookie("accessToken");
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_API}/staff/${slug}/program`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        `${process.env.NEXT_PUBLIC_BACKEND_API}/master/dinas/${slug}/program`,
+        { headers: { Authorization: `Bearer ${token}` } },
       );
       const json = await res.json();
       if (json?.data) setProgramList(json.data);
@@ -87,7 +92,7 @@ export default function StaffProgramPage() {
 
   useEffect(() => {
     const fetchMetode = async () => {
-      const data = await getMetodePengadaan("staff");
+      const data = await getMetodePengadaan("admin");
       setMetodeOptions(data);
     };
     fetchMetode();
@@ -109,10 +114,10 @@ export default function StaffProgramPage() {
   const handleMetodeUpdateItem = (
     key: string,
     field: "title" | "anggaran",
-    value: string
+    value: string,
   ) => {
     setMetode((prev) =>
-      prev.map((m) => (m.key === key ? { ...m, [field]: value } : m))
+      prev.map((m) => (m.key === key ? { ...m, [field]: value } : m)),
     );
   };
 
@@ -132,7 +137,7 @@ export default function StaffProgramPage() {
     }
 
     const invalidAnggaran = metode.some(
-      (m) => !m.anggaran || Number(m.anggaran.replace(/\./g, "")) <= 0
+      (m) => !m.anggaran || Number(m.anggaran.replace(/\./g, "")) <= 0,
     );
     if (invalidAnggaran) {
       toast.error("Anggaran setiap metode harus diisi");
@@ -145,6 +150,7 @@ export default function StaffProgramPage() {
 
       const payload = {
         namaProgram,
+        dinasId,
         pengadaanList: metode.map((m) => ({
           pengadaanId: m.pengadaanId,
           title: m.title,
@@ -153,7 +159,7 @@ export default function StaffProgramPage() {
       };
 
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_API}/staff/program`,
+        `${process.env.NEXT_PUBLIC_BACKEND_API}/master/program`,
         {
           method: "POST",
           headers: {
@@ -161,7 +167,7 @@ export default function StaffProgramPage() {
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify(payload),
-        }
+        },
       );
 
       if (!res.ok) throw new Error();
@@ -193,63 +199,63 @@ export default function StaffProgramPage() {
   };
 
   const filteredProgram = programList.filter((item) =>
-    item.namaProgram.toLowerCase().includes(searchTerm.toLowerCase())
+    item.namaProgram.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   return (
-    <section className="min-h-screen">
-      <div className="bg-[#ececec] min-h-screen py-10 px-32 text-black">
-        {/* TOP RIGHT SEARCH */}
-        <div className="flex justify-end gap-4 mb-8">
-          <div className="relative w-64">
-            <Search
-              size={16}
-              color="grey"
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-            />
-            <input
-              type="text"
-              placeholder="Cari program..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 rounded-lg border placeholder:text-gray-600 border-gray-300 bg-white focus:ring-2 focus:ring-red-500 outline-none"
-            />
-          </div>
-
-          <button
-            onClick={() => setOpen(true)}
-            className="flex items-center gap-2 bg-[#CB0E0E] hover:bg-red-800 text-white px-4 py-2 cursor-pointer rounded-lg shadow transition"
-          >
-            <Plus size={16} />
-            Tambah
-          </button>
-        </div>
-
+    <section className="min-h-screen text-black">
+      <SidebarAdmin />
+      <div className="ml-64 bg-[#ececec] min-h-screen py-10 px-10">
         {/* HEADER */}
         <div className="flex items-start gap-6 mb-6">
-          <div className="bg-[#CB0E0E] w-20 h-20 rounded-2xl rotate-6 flex items-center justify-center text-white text-3xl shadow-lg">
-            <BookOpen />
-          </div>
           <div>
-            <p className="text-xs text-[#CB0E0E] uppercase tracking-widest">
-              {formatNamaDinas(slug)}
+            <p className="text-xl text-[#CB0E0E] uppercase italic tracking-widest">
+              DASHBOARD
             </p>
             <h1 className="text-4xl font-extrabold italic tracking-wide">
-              DASHBOARD
+              {formatNamaDinas(slug)}
             </h1>
           </div>
         </div>
 
         <hr className="border-gray-300 mb-6" />
 
-        {/* BACK BUTTON */}
-        <button
-          onClick={() => router.back()}
-          className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg shadow hover:bg-gray-100 transition mb-10 cursor-pointer"
-        >
-          <ArrowLeft size={16} />
-          Kembali
-        </button>
+        <div className="flex flex-row justify-between">
+          <div className="flex flex-row gap-4">
+            <button
+              onClick={() => router.back()}
+              className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg shadow hover:bg-gray-100 transition mb-10 cursor-pointer"
+            >
+              <ArrowLeft size={16} />
+              Kembali
+            </button>
+
+            <div className="relative w-64">
+              <Search
+                size={16}
+                color="grey"
+                className="absolute left-3 top-3 text-gray-400"
+              />
+              <input
+                type="text"
+                placeholder="Cari program..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-9 pr-4 py-2 rounded-lg border placeholder:text-gray-600 border-gray-300 bg-white focus:ring-2 focus:ring-red-500 outline-none"
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-4 mb-8">
+            <button
+              onClick={() => setOpen(true)}
+              className="flex items-center gap-2 bg-[#CB0E0E] hover:bg-red-800 text-white px-4 py-2 cursor-pointer rounded-lg shadow transition"
+            >
+              <Plus size={16} />
+              Tambah
+            </button>
+          </div>
+        </div>
 
         {/* PROGRAM CARDS */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-6 text-black items-stretch">
@@ -268,7 +274,7 @@ export default function StaffProgramPage() {
               return (
                 <Link
                   key={item.id}
-                  href={`/monitoring-staff/${slug}/${subSlug}`}
+                  href={`/monitoring-staff-master/${dinasId}/${slug}/${subSlug}`}
                   className="block"
                 >
                   <div className="relative bg-white rounded-3xl shadow-lg p-4 hover:shadow-xl transition border-t-16 border-[#CB0E0E] flex flex-col h-full cursor-pointer hover:scale-[1.02] duration-200">
@@ -346,7 +352,9 @@ export default function StaffProgramPage() {
 
               {/* Metode Pengadaan (anggaran sudah ada di dalam) */}
               <div>
-                <label className="text-sm text-gray-600">Metode Pengadaan</label>
+                <label className="text-sm text-gray-600">
+                  Metode Pengadaan
+                </label>
                 <MultiSelectMetode
                   options={metodeOptions}
                   selected={metode}
