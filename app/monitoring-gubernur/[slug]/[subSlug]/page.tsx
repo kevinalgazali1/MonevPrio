@@ -48,6 +48,7 @@ interface Pengadaan {
   namaTransaksi: string;
   jenisPengadaan: string;
   title: string;
+  anggaran: number;
   createdAt: string;
   tahapanList: Tahapan[];
 }
