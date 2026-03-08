@@ -78,7 +78,9 @@ function getTahapanBarStatus(tahapan: Tahapan): "aman" | "terlambat" | "none" {
         : "terlambat";
     }
     if (planningTanggalSelesai) {
-      return new Date() > new Date(planningTanggalSelesai) ? "terlambat" : "aman";
+      return new Date() > new Date(planningTanggalSelesai)
+        ? "terlambat"
+        : "aman";
     }
     return "aman";
   }
@@ -133,10 +135,6 @@ export default function MonitoringProgramPage() {
 
   const pengadaanList = program?.pengadaanList ?? [];
 
-  /**
-   * Hitung status hanya dari tahapan yang SUDAH ada aktualnya
-   * (aktualTanggalMulai terisi) — supaya card mencerminkan realisasi
-   */
   const allTahapan = pengadaanList.flatMap((p) => p.tahapanList);
   const tahapanDenganAktual = allTahapan.filter(
     (t) => !!t.progres.aktualTanggalMulai,
@@ -149,14 +147,15 @@ export default function MonitoringProgramPage() {
   ).length;
 
   // Format budget
-  const formatAnggaran = (val: string) => {
-    const num = parseInt(val, 10);
-    if (isNaN(num)) return val;
-    if (num >= 1_000_000_000) return `${(num / 1_000_000_000).toFixed(0)} M`;
-    if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(0)} Jt`;
-    return num.toLocaleString("id-ID");
+  const formatAnggaran = (value: number) => {
+    return new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(value);
   };
-
+  
   const handleDownloadTimeline = () => {
     if (!program) return;
 
@@ -175,7 +174,9 @@ export default function MonitoringProgramPage() {
           Pengadaan: pengadaan.namaTransaksi,
           Tahapan: tahapan.namaTahapan,
           "Planning Mulai": formatDate(tahapan.progres.planningTanggalMulai),
-          "Planning Selesai": formatDate(tahapan.progres.planningTanggalSelesai),
+          "Planning Selesai": formatDate(
+            tahapan.progres.planningTanggalSelesai,
+          ),
           "Aktual Mulai": formatDate(tahapan.progres.aktualTanggalMulai),
           "Aktual Selesai": formatDate(tahapan.progres.aktualTanggalSelesai),
           Status: status,
@@ -201,7 +202,11 @@ export default function MonitoringProgramPage() {
       wch: Math.max(
         key.length,
         ...data.map((row) =>
-          row[key] instanceof Date ? 12 : row[key] ? row[key].toString().length : 10,
+          row[key] instanceof Date
+            ? 12
+            : row[key]
+              ? row[key].toString().length
+              : 10,
         ),
       ),
     }));
@@ -209,7 +214,10 @@ export default function MonitoringProgramPage() {
 
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Timeline");
-    XLSX.writeFile(workbook, `Timeline-${program.slug}-${new Date().toISOString().slice(0, 10)}.xlsx`);
+    XLSX.writeFile(
+      workbook,
+      `Timeline-${program.slug}-${new Date().toISOString().slice(0, 10)}.xlsx`,
+    );
   };
 
   // ─── Render ───────────────────────────────────────────────────────────────────
@@ -235,7 +243,10 @@ export default function MonitoringProgramPage() {
         {/* ── Topbar ── */}
         <div className="flex justify-end items-center gap-4">
           <div className="relative">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <Search
+              size={16}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            />
             <input
               type="text"
               placeholder="cari item"
@@ -260,7 +271,9 @@ export default function MonitoringProgramPage() {
             <Building2 className="text-gray-500 shrink-0" />
             <div>
               <p className="text-xs text-gray-500">TOTAL PROYEK</p>
-              <p className="text-lg font-bold">{loading ? "—" : pengadaanList.length}</p>
+              <p className="text-lg font-bold">
+                {loading ? "—" : pengadaanList.length}
+              </p>
             </div>
           </div>
 
@@ -278,7 +291,9 @@ export default function MonitoringProgramPage() {
             <AlertTriangle className="text-red-500 shrink-0" />
             <div>
               <p className="text-xs text-gray-500">KENDALA</p>
-              <p className="text-lg font-bold">{loading ? "—" : totalKendala}</p>
+              <p className="text-lg font-bold">
+                {loading ? "—" : totalKendala}
+              </p>
             </div>
           </div>
 
@@ -295,14 +310,14 @@ export default function MonitoringProgramPage() {
         <div className="flex justify-between items-center mt-10">
           <div className="flex flex-row gap-6 items-center">
             <div>
-              <h1 className="text-3xl font-bold">
+              <h1 className="text-3xl font-bold max-w-105 line-clamp-2">
                 {loading ? (
                   <span className="flex items-center gap-2 text-gray-400">
                     <Loader2 size={24} className="animate-spin" />
                     Memuat...
                   </span>
                 ) : (
-                  program?.namaProgram ?? "—"
+                  (program?.namaProgram ?? "—")
                 )}
               </h1>
               <p className="text-gray-500 text-sm mt-1">
@@ -312,8 +327,10 @@ export default function MonitoringProgramPage() {
             </div>
 
             {program?.anggaran && (
-              <div className="bg-white text-[#CB0E0E] font-bold rounded-xl px-4 py-2 border-2 border-red-100 flex items-center justify-center">
-                <h1 className="text-2xl">{formatAnggaran(program.anggaran)}</h1>
+              <div className="bg-white text-[#CB0E0E] font-bold rounded-xl px-4 py-2 border-2 border-red-100 flex items-center justify-center whitespace-nowrap">
+                <h1 className="text-2xl">
+                  {formatAnggaran(Number(program.anggaran))}
+                </h1>
               </div>
             )}
           </div>

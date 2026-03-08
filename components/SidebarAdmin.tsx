@@ -6,6 +6,7 @@ import {
   Settings,
   LogOut,
   BookOpen,
+  Mail,
 } from "lucide-react";
 import Link from "next/link";
 import { getCookie, deleteCookie } from "cookies-next";
@@ -43,7 +44,6 @@ export default function SidebarAdmin() {
 
   return (
     <aside className="fixed top-0 left-0 w-64 h-screen bg-[#8A0707] text-white flex flex-col justify-between overflow-hidden shadow-lg">
-      
       {/* ===== TOP SECTION ===== */}
       <div>
         {/* Logo */}
@@ -71,6 +71,14 @@ export default function SidebarAdmin() {
           >
             <Settings size={18} />
             Admin Panel
+          </Link>
+
+          <Link
+            href="/monitoring-staff-master/kotak-masuk"
+            className={menuClass("/monitoring-staff-master/kotak-masuk")}
+          >
+            <Mail size={18} />
+            Kotak Masuk
           </Link>
         </nav>
       </div>

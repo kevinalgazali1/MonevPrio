@@ -127,7 +127,7 @@ export default function AdminProgramPage() {
     e.preventDefault();
 
     if (!namaProgram.trim()) {
-      toast.error("Nama program wajib diisi");
+      toast.error("Nama strong point wajib diisi");
       return;
     }
 
@@ -341,7 +341,7 @@ export default function AdminProgramPage() {
             <form className="space-y-5" onSubmit={handleSubmit}>
               {/* Nama Program */}
               <div>
-                <label className="text-sm text-gray-600">Nama Program</label>
+                <label className="text-sm text-gray-600">Nama Strong Point</label>
                 <input
                   type="text"
                   value={namaProgram}

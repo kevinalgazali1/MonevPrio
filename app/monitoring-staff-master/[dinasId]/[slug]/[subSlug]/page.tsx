@@ -19,7 +19,14 @@ import {
 } from "lucide-react";
 import { getCookie } from "cookies-next";
 
-// ─── Types ──────────────────────────────────────────────────────────────────────
+// ─── Types ─────────────────────────────────────────────────────────────────────
+
+/** Satu entri keterangan dari API */
+interface KeteranganItem {
+  catatan: string;
+  tanggal?: string | null;
+  penulis?: string | null;
+}
 
 interface Progres {
   idProgres: number;
@@ -28,7 +35,8 @@ interface Progres {
   planningTanggalSelesai: string | null;
   aktualTanggalMulai: string | null;
   aktualTanggalSelesai: string | null;
-  keterangan: string | null;
+  /** API mengembalikan array of objects {catatan, tanggal, penulis} */
+  keterangan: KeteranganItem[] | string[] | string | null;
   dokumenBukti: string[];
   updatedAt: string;
 }
@@ -65,7 +73,7 @@ interface ProgramDetail {
   pengadaanList: Pengadaan[];
 }
 
-// ─── Helper: classify a tahapan's bar status ────────────────────────────────────
+// ─── Helper: classify a tahapan's bar status ───────────────────────────────────
 
 function getTahapanBarStatus(tahapan: Tahapan): "aman" | "terlambat" | "none" {
   const { aktualTanggalMulai, aktualTanggalSelesai, planningTanggalSelesai } =
@@ -92,7 +100,20 @@ function getTahapanBarStatus(tahapan: Tahapan): "aman" | "terlambat" | "none" {
   return "none";
 }
 
-// ─── Component ──────────────────────────────────────────────────────────────────
+/** Ekstrak teks catatan dari keterangan (untuk export Excel) */
+function keteranganToText(raw: KeteranganItem[] | string[] | string | null): string {
+  if (!raw) return "";
+  if (typeof raw === "string") return raw;
+  if (Array.isArray(raw)) {
+    return raw
+      .map((item) => (typeof item === "string" ? item : item.catatan ?? ""))
+      .filter(Boolean)
+      .join("; ");
+  }
+  return "";
+}
+
+// ─── Component ─────────────────────────────────────────────────────────────────
 
 export default function AdminMonitoringProgramPage() {
   const { dinasId, slug, subSlug } = useParams() as {
@@ -114,7 +135,7 @@ export default function AdminMonitoringProgramPage() {
     { id: "terlambat", label: "Terlambat" },
   ];
 
-  // ─── Fetch ────────────────────────────────────────────────────────────────────
+  // ─── Fetch ──────────────────────────────────────────────────────────────────
   const fetchProgram = async () => {
     try {
       const token = getCookie("accessToken");
@@ -135,14 +156,10 @@ export default function AdminMonitoringProgramPage() {
     if (subSlug) fetchProgram();
   }, [subSlug]);
 
-  // ─── Derived ──────────────────────────────────────────────────────────────────
+  // ─── Derived ────────────────────────────────────────────────────────────────
 
   const pengadaanList = program?.pengadaanList ?? [];
 
-  /**
-   * Hitung status hanya dari tahapan yang SUDAH ada aktualnya
-   * (aktualTanggalMulai terisi) — supaya card mencerminkan realisasi
-   */
   const allTahapan = pengadaanList.flatMap((p) => p.tahapanList);
   const tahapanDenganAktual = allTahapan.filter(
     (t) => !!t.progres.aktualTanggalMulai,
@@ -154,13 +171,13 @@ export default function AdminMonitoringProgramPage() {
     (t) => getTahapanBarStatus(t) === "terlambat",
   ).length;
 
-  // Format budget
-  const formatAnggaran = (val: string) => {
-    const num = parseInt(val, 10);
-    if (isNaN(num)) return val;
-    if (num >= 1_000_000_000) return `${(num / 1_000_000_000).toFixed(0)} M`;
-    if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(0)} Jt`;
-    return num.toLocaleString("id-ID");
+  const formatAnggaran = (value: number) => {
+    return new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(value);
   };
 
   const handleDownloadTimeline = () => {
@@ -181,13 +198,12 @@ export default function AdminMonitoringProgramPage() {
           Pengadaan: pengadaan.namaTransaksi,
           Tahapan: tahapan.namaTahapan,
           "Planning Mulai": formatDate(tahapan.progres.planningTanggalMulai),
-          "Planning Selesai": formatDate(
-            tahapan.progres.planningTanggalSelesai,
-          ),
+          "Planning Selesai": formatDate(tahapan.progres.planningTanggalSelesai),
           "Aktual Mulai": formatDate(tahapan.progres.aktualTanggalMulai),
           "Aktual Selesai": formatDate(tahapan.progres.aktualTanggalSelesai),
           Status: status,
-          Keterangan: tahapan.progres.keterangan ?? "",
+          // Gabungkan semua catatan jadi satu string untuk Excel
+          Keterangan: keteranganToText(tahapan.progres.keterangan),
         });
       });
     });
@@ -227,7 +243,7 @@ export default function AdminMonitoringProgramPage() {
     );
   };
 
-  // ─── Render ───────────────────────────────────────────────────────────────────
+  // ─── Render ─────────────────────────────────────────────────────────────────
 
   return (
     <div className="flex min-h-screen bg-[#ECECEC] text-black">
@@ -284,7 +300,6 @@ export default function AdminMonitoringProgramPage() {
             </div>
           </div>
 
-          {/* STATUS AMAN — hanya tahapan yang sudah ada aktualnya */}
           <div className="bg-white p-4 rounded-xl shadow flex gap-4 items-center">
             <CheckCircle className="text-green-500 shrink-0" />
             <div>
@@ -293,7 +308,6 @@ export default function AdminMonitoringProgramPage() {
             </div>
           </div>
 
-          {/* KENDALA — hanya tahapan yang sudah ada aktualnya */}
           <div className="bg-white p-4 rounded-xl shadow flex gap-4 items-center">
             <AlertTriangle className="text-red-500 shrink-0" />
             <div>
@@ -317,7 +331,7 @@ export default function AdminMonitoringProgramPage() {
         <div className="flex justify-between items-center mt-10">
           <div className="flex flex-row gap-6 items-center">
             <div>
-              <h1 className="text-3xl font-bold">
+              <h1 className="text-3xl font-bold max-w-105 line-clamp-2">
                 {loading ? (
                   <span className="flex items-center gap-2 text-gray-400">
                     <Loader2 size={24} className="animate-spin" />
@@ -334,8 +348,10 @@ export default function AdminMonitoringProgramPage() {
             </div>
 
             {program?.anggaran && (
-              <div className="bg-white text-[#CB0E0E] font-bold rounded-xl px-4 py-2 border-2 border-red-100 flex items-center justify-center">
-                <h1 className="text-2xl">{formatAnggaran(program.anggaran)}</h1>
+              <div className="bg-white text-[#CB0E0E] font-bold rounded-xl px-4 py-2 border-2 border-red-100 flex items-center justify-center whitespace-nowrap">
+                <h1 className="text-2xl">
+                  {formatAnggaran(Number(program.anggaran))}
+                </h1>
               </div>
             )}
           </div>
