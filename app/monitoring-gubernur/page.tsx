@@ -149,12 +149,6 @@ export default function GubernurInstansiPage() {
                   <div className="bg-[#CB0E0E] w-14 h-14 rounded-2xl flex items-center justify-center text-white text-2xl shadow">
                     <BookOpen />
                   </div>
-
-                  {item.programPrioritas === 0 && (
-                    <div className="bg-red-100 text-[#CB0E0E] px-3 py-1 rounded-full text-xs flex items-center gap-1 shadow">
-                      ⚠
-                    </div>
-                  )}
                 </div>
 
                 <h2 className="text-xl font-bold mb-1">{item.namaDinas}</h2>

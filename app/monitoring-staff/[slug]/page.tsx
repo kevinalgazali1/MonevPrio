@@ -401,7 +401,12 @@ export default function StaffProgramPage() {
                       isMenunggu ? "pointer-events-none cursor-not-allowed" : ""
                     }`}
                   >
-                    <div className="relative bg-white rounded-3xl shadow-lg p-4 hover:shadow-xl transition border-t-16 border-[#CB0E0E] flex flex-col h-full hover:scale-[1.02] duration-200">
+                    <div
+                      className="relative bg-white rounded-3xl shadow-lg p-4 
+                      hover:shadow-xl transition border-t-16 border-[#CB0E0E] 
+                      flex flex-col cursor-pointer hover:scale-[1.02] duration-200
+                      h-90"
+                    >
                       <div>
                         <div className="relative flex justify-between items-center mt-10 mb-6">
                           <div className="bg-[#CB0E0E] w-14 h-14 rounded-2xl flex items-center justify-center text-white text-2xl shadow">
@@ -421,7 +426,7 @@ export default function StaffProgramPage() {
                           )}
                         </div>
 
-                        <h2 className="text-2xl font-bold leading-snug mb-2 line-clamp-3">
+                        <h2 className="text-xl font-bold leading-snug mb-2 line-clamp-3">
                           {item.namaProgram}
                         </h2>
 

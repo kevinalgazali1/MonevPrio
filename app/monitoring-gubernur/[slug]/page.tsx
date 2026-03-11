@@ -4,13 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { getCookie } from "cookies-next";
 import Link from "next/link";
-import {
-  Search,
-  ArrowLeft,
-  ArrowRight,
-  Check,
-  BookOpen,
-} from "lucide-react";
+import { Search, ArrowLeft, ArrowRight, Check, BookOpen } from "lucide-react";
 
 interface ProgramItem {
   id: number;
@@ -22,7 +16,6 @@ interface ProgramItem {
 }
 
 export default function GubernurProgramPage() {
-
   const [programList, setProgramList] = useState<ProgramItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -75,7 +68,6 @@ export default function GubernurProgramPage() {
   useEffect(() => {
     if (slug) fetchProgram();
   }, [slug]);
-
 
   const formatRupiahCompact = (value: number) => {
     if (value >= 1_000_000_000_000) {
@@ -178,7 +170,12 @@ export default function GubernurProgramPage() {
                   href={`/monitoring-gubernur/${slug}/${subSlug}`}
                   className="block"
                 >
-                  <div className="relative bg-white rounded-3xl shadow-lg p-4 hover:shadow-xl transition border-t-16 border-[#CB0E0E] flex flex-col h-full cursor-pointer hover:scale-[1.02] duration-200">
+                  <div
+                    className="relative bg-white rounded-3xl shadow-lg p-4 
+                    hover:shadow-xl transition border-t-16 border-[#CB0E0E] 
+                    flex flex-col cursor-pointer hover:scale-[1.02] duration-200
+                    h-90"
+                  >
                     <div>
                       <div className="relative flex justify-between items-center mt-10 mb-6">
                         <div className="bg-[#CB0E0E] w-14 h-14 rounded-2xl flex items-center justify-center text-white text-2xl shadow">
@@ -191,7 +188,7 @@ export default function GubernurProgramPage() {
                         </div>
                       </div>
 
-                      <h2 className="text-2xl font-bold leading-snug mb-2 line-clamp-3">
+                      <h2 className="text-xl font-bold leading-snug mb-2 line-clamp-3">
                         {item.namaProgram}
                       </h2>
 
@@ -215,7 +212,6 @@ export default function GubernurProgramPage() {
             })}
         </div>
       </div>
-
     </section>
   );
 }

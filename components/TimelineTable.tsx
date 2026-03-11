@@ -162,7 +162,7 @@ function computeAllForecasts(tahapanList: Tahapan[]): ForecastResult[] {
     // ── Kasus 2: Sedang in-progress (ada aktualStart, belum aktualEnd) ───────
     if (aktualStart) {
       const aStartMs = parseLocalDate(aktualStart).getTime();
-      const forecastDurMs = Math.max(planDurMs + accVarianceMs, DAY_MS);
+      const forecastDurMs = Math.max(planDurMs + accVarianceMs, 0);
       const forecastEndMs = aStartMs + forecastDurMs;
       prevEndMs = forecastEndMs;
 
@@ -177,7 +177,7 @@ function computeAllForecasts(tahapanList: Tahapan[]): ForecastResult[] {
     // ── Kasus 3: Belum mulai ──────────────────────────────────────────────────
     const forecastStartMs =
       prevEndMs !== null ? prevEndMs + DAY_MS : planStartMs;
-    const forecastDurMs = Math.max(planDurMs + accVarianceMs, DAY_MS);
+    const forecastDurMs = Math.max(planDurMs + accVarianceMs, 0);
     const forecastEndMs = forecastStartMs + forecastDurMs;
     prevEndMs = forecastEndMs;
 
@@ -1225,7 +1225,21 @@ export default function TimelineTable({
                       deltaMs > 0 &&
                       programForecastMs !== null &&
                       overallForecastCol >= 0;
-                    const forecastDelayDays = Math.round(deltaMs / 86_400_000);
+
+                    // Ambil accVarianceDays dari tahapan terakhir yang punya plan
+                    // (bukan total deltaMs program, tapi variance akumulasi tahapan terakhir)
+                    const lastForecastWithPlan = (() => {
+                      for (let i = forecastMsList.length - 1; i >= 0; i--) {
+                        if (
+                          forecastMsList[i].forecastEndMs !== null &&
+                          pengadaan.tahapanList[i].progres.planningTanggalSelesai
+                        )
+                          return forecastMsList[i];
+                      }
+                      return null;
+                    })();
+                    const forecastDelayDays =
+                      lastForecastWithPlan?.accVarianceDays ?? 0;
 
                     return [
                       // Pengadaan header row
@@ -1295,19 +1309,16 @@ export default function TimelineTable({
                               tahapan.progres.planningTanggalSelesai,
                             ).getTime()
                           : -1;
-                        // Forecast bar: dari forecastStart sampai forecastEnd
-                        const forecastBarStart =
-                          forecastStartMs !== null
-                            ? getColIndexFromMs(columns, forecastStartMs)
-                            : -1;
-                        const forecastBarEnd =
-                          forecastEndMs !== null
-                            ? getColIndexFromMs(columns, forecastEndMs)
-                            : -1;
+
+                        // ── PERUBAHAN 1: showForecastBar tambah !isLocked ──────
+                        // Bar forecast hanya tampil jika ada data forecast
+                        // DAN tahapan belum selesai/terkunci
                         const showForecastBar =
                           forecastEndMs !== null &&
-                          forecastBarStart >= 0 &&
-                          forecastBarEnd >= forecastBarStart;
+                          planStart >= 0 &&
+                          planEnd >= planStart &&
+                          !isLocked; // ← bar forecast hilang jika tahapan selesai
+
                         const isDelayed =
                           forecastEndMs !== null &&
                           planEndMs > -1 &&
@@ -1334,10 +1345,21 @@ export default function TimelineTable({
                             i++
                           )
                             cells[i].actual = true;
-                        if (showForecastBar)
+
+                        // ── PERUBAHAN 2: forecast bar mulai di tanggal forecast,
+                        // panjangnya = jumlah kolom plan (bukan rentang forecast asli)
+                        const forecastBarStart =
+                          forecastStartMs !== null
+                            ? getColIndexFromMs(columns, forecastStartMs)
+                            : -1;
+                        const planSpanCount =
+                          planStart >= 0 && planEnd >= planStart
+                            ? planEnd - planStart + 1
+                            : 0;
+                        if (showForecastBar && forecastBarStart >= 0 && planSpanCount > 0)
                           for (
                             let i = forecastBarStart;
-                            i <= forecastBarEnd && i < columns.length;
+                            i < forecastBarStart + planSpanCount && i < columns.length;
                             i++
                           )
                             cells[i].forecast = true;
@@ -1444,7 +1466,7 @@ export default function TimelineTable({
                                         </span>
                                       </div>
                                     )}
-                                    {forecastEndMs !== null && (
+                                    {forecastEndMs !== null && !isLocked && (
                                       <div
                                         className={`text-[9px] flex items-center gap-1 font-semibold ${isDelayed ? "text-amber-500" : "text-gray-400"}`}
                                       >
@@ -1638,8 +1660,10 @@ export default function TimelineTable({
                                 </div>
                                 <div className="text-[10px] text-amber-600 mt-0.5">
                                   {formatDisplayDateMs(programForecastMs!)}
-                                  <span className="ml-1 text-red-500 font-bold">
-                                    +{forecastDelayDays} hari
+                                  <span
+                                    className={`ml-1 font-bold ${forecastDelayDays > 0 ? "text-red-500" : forecastDelayDays < 0 ? "text-green-500" : "text-gray-400"}`}
+                                  >
+                                    {forecastDelayDays > 0 ? "+" : ""}{forecastDelayDays} hari
                                   </span>
                                 </div>
                               </td>

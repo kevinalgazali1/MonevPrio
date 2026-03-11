@@ -277,7 +277,12 @@ export default function AdminProgramPage() {
                   href={`/monitoring-staff-master/${dinasId}/${slug}/${subSlug}`}
                   className="block"
                 >
-                  <div className="relative bg-white rounded-3xl shadow-lg p-4 hover:shadow-xl transition border-t-16 border-[#CB0E0E] flex flex-col h-full cursor-pointer hover:scale-[1.02] duration-200">
+                  <div
+                    className="relative bg-white rounded-3xl shadow-lg p-4 
+hover:shadow-xl transition border-t-16 border-[#CB0E0E] 
+flex flex-col cursor-pointer hover:scale-[1.02] duration-200
+h-90"
+                  >
                     <div>
                       <div className="relative flex justify-between items-center mt-10 mb-6">
                         <div className="bg-[#CB0E0E] w-14 h-14 rounded-2xl flex items-center justify-center text-white text-2xl shadow">
@@ -288,7 +293,7 @@ export default function AdminProgramPage() {
                           Aktif
                         </div>
                       </div>
-                      <h2 className="text-2xl font-bold leading-snug mb-2 line-clamp-3">
+                      <h2 className="text-xl font-bold leading-snug mb-2 line-clamp-3">
                         {item.namaProgram}
                       </h2>
                       <p className="text-xs text-gray-500 mb-4 line-clamp-2">
@@ -341,7 +346,9 @@ export default function AdminProgramPage() {
             <form className="space-y-5" onSubmit={handleSubmit}>
               {/* Nama Program */}
               <div>
-                <label className="text-sm text-gray-600">Nama Strong Point</label>
+                <label className="text-sm text-gray-600">
+                  Nama Strong Point
+                </label>
                 <input
                   type="text"
                   value={namaProgram}
