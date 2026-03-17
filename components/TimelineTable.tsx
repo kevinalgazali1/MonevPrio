@@ -102,26 +102,24 @@ const DAY_MS = 86_400_000;
 function getTahapanBarStatus(tahapan: Tahapan): "aman" | "terlambat" | "none" {
   const { aktualTanggalMulai, aktualTanggalSelesai, planningTanggalSelesai } =
     tahapan.progres;
-  if (aktualTanggalMulai) {
-    if (aktualTanggalSelesai && planningTanggalSelesai) {
-      return parseLocalDate(aktualTanggalSelesai) <=
-        parseLocalDate(planningTanggalSelesai)
-        ? "aman"
-        : "terlambat";
-    }
-    if (planningTanggalSelesai) {
-      return new Date() > parseLocalDate(planningTanggalSelesai)
-        ? "terlambat"
-        : "aman";
-    }
-    return "aman";
+
+  // Tanpa aktual → belum bisa dinilai aman/terlambat
+  if (!aktualTanggalMulai) return "none";
+
+  // Ada aktual mulai: sudah selesai → bandingkan aktual vs plan
+  if (aktualTanggalSelesai && planningTanggalSelesai) {
+    return parseLocalDate(aktualTanggalSelesai) <=
+      parseLocalDate(planningTanggalSelesai)
+      ? "aman"
+      : "terlambat";
   }
+  // Sedang berjalan → bandingkan hari ini vs plan selesai
   if (planningTanggalSelesai) {
     return new Date() > parseLocalDate(planningTanggalSelesai)
       ? "terlambat"
       : "aman";
   }
-  return "none";
+  return "aman";
 }
 
 // ─── Timeline columns ──────────────────────────────────────────────────────────
@@ -164,18 +162,8 @@ function buildTimelineColumns(pengadaanList: Pengadaan[]) {
   const end = new Date(maxDate.getFullYear(), maxDate.getMonth() + 1, 0);
 
   const monthNames = [
-    "Januari",
-    "Februari",
-    "Maret",
-    "April",
-    "Mei",
-    "Juni",
-    "Juli",
-    "Agustus",
-    "September",
-    "Oktober",
-    "November",
-    "Desember",
+    "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+    "Juli", "Agustus", "September", "Oktober", "November", "Desember",
   ];
 
   const columns: {
@@ -224,10 +212,7 @@ function getColIndex(columns: Columns, dateStr: string | null): number {
 
 function getColIndexFromMs(columns: Columns, ms: number): number {
   for (let i = 0; i < columns.length; i++) {
-    if (
-      ms >= columns[i].startDay.getTime() &&
-      ms <= columns[i].endDay.getTime()
-    )
+    if (ms >= columns[i].startDay.getTime() && ms <= columns[i].endDay.getTime())
       return i;
   }
   if (ms > columns[columns.length - 1].endDay.getTime())
@@ -264,20 +249,7 @@ function formatDisplayDate(dateStr: string | null | undefined): string {
   if (!dateStr) return "-";
   const s = dateStr.split("T")[0];
   const [y, m, d] = s.split("-").map(Number);
-  const mn = [
-    "Jan",
-    "Feb",
-    "Mar",
-    "Apr",
-    "Mei",
-    "Jun",
-    "Jul",
-    "Agt",
-    "Sep",
-    "Okt",
-    "Nov",
-    "Des",
-  ];
+  const mn = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agt","Sep","Okt","Nov","Des"];
   return `${String(d).padStart(2, "0")} ${mn[m - 1]} ${y}`;
 }
 
@@ -465,9 +437,7 @@ function KeteranganModal({
                       {(item.tanggal || item.penulis) && (
                         <p className="text-[9px] text-gray-400 mt-1 flex items-center gap-1">
                           {item.penulis && (
-                            <span className="font-semibold">
-                              {item.penulis}
-                            </span>
+                            <span className="font-semibold">{item.penulis}</span>
                           )}
                           {item.penulis && item.tanggal && <span>·</span>}
                           {item.tanggal && (
@@ -531,18 +501,13 @@ function PlanModal({
       return;
     }
     if (minMulai && new Date(mulai) < new Date(minMulai)) {
-      toast.error(
-        "Tanggal mulai tidak boleh sebelum selesai tahapan sebelumnya",
-      );
+      toast.error("Tanggal mulai tidak boleh sebelum selesai tahapan sebelumnya");
       return;
     }
     try {
       setLoading(true);
       const token = getCookie("accessToken");
-      if (!token) {
-        toast.error("Session habis, silakan login ulang");
-        return;
-      }
+      if (!token) { toast.error("Session habis, silakan login ulang"); return; }
       const body = JSON.stringify({
         planningTanggalMulai: formatToMMDDYYYY(mulai),
         planningTanggalSelesai: formatToMMDDYYYY(selesai),
@@ -557,7 +522,7 @@ function PlanModal({
           { method: "PATCH", headers, body },
         ),
         fetch(
-          `https://sulsel.cloud/api/master/progres/${tahapan.progres.idProgres}/planning`,
+          `${process.env.NEXT_PUBLIC_BACKEND_API}/master/progres/${tahapan.progres.idProgres}/planning`,
           { method: "PATCH", headers, body },
         ),
       ]);
@@ -565,14 +530,10 @@ function PlanModal({
       const rm = await resMaster.json().catch(() => ({}));
       if (!resStaff.ok && !resMaster.ok)
         throw new Error(rs?.msg || rm?.msg || "Gagal update planning");
-      if (resStaff.ok && !resMaster.ok && rm?.msg)
-        toast(`Master: ${rm.msg}`, { icon: "⚠️" });
-      if (!resStaff.ok && resMaster.ok && rs?.msg)
-        toast(`Staff: ${rs.msg}`, { icon: "⚠️" });
+      if (resStaff.ok && !resMaster.ok && rm?.msg) toast(`Master: ${rm.msg}`, { icon: "⚠️" });
+      if (!resStaff.ok && resMaster.ok && rs?.msg) toast(`Staff: ${rs.msg}`, { icon: "⚠️" });
       toast.success(
-        (resStaff.ok ? rs?.msg : null) ||
-          (resMaster.ok ? rm?.msg : null) ||
-          "Berhasil mengatur ulang jadwal planning",
+        (resStaff.ok ? rs?.msg : null) || (resMaster.ok ? rm?.msg : null) || "Berhasil mengatur ulang jadwal planning",
       );
       onClose();
       window.location.reload();
@@ -588,10 +549,7 @@ function PlanModal({
       <div className="px-7 pt-6 pb-7">
         <ModalHeader subtitle={tahapan.namaTahapan} onClose={onClose} />
         <div className="flex gap-4 mb-4 bg-gray-50 rounded-xl px-4 py-2.5 border border-gray-100">
-          <LastUpdateBadge
-            label="Last Update Plan"
-            date={tahapan.progres.lastUpdatePlan}
-          />
+          <LastUpdateBadge label="Last Update Plan" date={tahapan.progres.lastUpdatePlan} />
         </div>
         <p className="text-sm font-semibold text-gray-800 mb-3">
           Target Waktu <span className="italic font-normal">(planning)</span>
@@ -599,31 +557,25 @@ function PlanModal({
         {minMulai && (
           <div className="mb-3 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-xs text-amber-700">
             ⚠️ Tanggal mulai tidak boleh sebelum{" "}
-            <strong>{formatDisplayDate(minMulai)}</strong> (selesai tahapan
-            sebelumnya)
+            <strong>{formatDisplayDate(minMulai)}</strong> (selesai tahapan sebelumnya)
           </div>
         )}
         <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 flex gap-4">
           <div className="flex-1">
-            <label className="block text-xs font-semibold text-gray-500 mb-1.5 tracking-wider">
-              MULAI
-            </label>
+            <label className="block text-xs font-semibold text-gray-500 mb-1.5 tracking-wider">MULAI</label>
             <input
               type="date"
               value={mulai}
               min={minMulai}
               onChange={(e) => {
                 setMulai(e.target.value);
-                if (selesai && new Date(e.target.value) > new Date(selesai))
-                  setSelesai("");
+                if (selesai && new Date(e.target.value) > new Date(selesai)) setSelesai("");
               }}
               className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-400"
             />
           </div>
           <div className="flex-1">
-            <label className="block text-xs font-semibold text-gray-500 mb-1.5 tracking-wider">
-              SELESAI
-            </label>
+            <label className="block text-xs font-semibold text-gray-500 mb-1.5 tracking-wider">SELESAI</label>
             <input
               type="date"
               value={selesai}
@@ -635,10 +587,7 @@ function PlanModal({
           </div>
         </div>
         <div className="flex gap-3 mt-6">
-          <button
-            onClick={onClose}
-            className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-gray-500 bg-gray-100 hover:bg-gray-200"
-          >
+          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-gray-500 bg-gray-100 hover:bg-gray-200">
             BATALKAN
           </button>
           <button
@@ -690,18 +639,10 @@ function UpdateModal({
   );
 
   async function handleSave() {
-    if (!mulai) {
-      toast.error("Tanggal mulai aktual wajib diisi");
-      return;
-    }
-    if (!selesai) {
-      toast.error("Tanggal selesai wajib diisi");
-      return;
-    }
+    if (!mulai) { toast.error("Tanggal mulai aktual wajib diisi"); return; }
+    if (!selesai) { toast.error("Tanggal selesai wajib diisi"); return; }
     if (planningMulai && new Date(mulai) < new Date(planningMulai)) {
-      toast.error(
-        "Tanggal mulai aktual tidak boleh sebelum tanggal mulai planning",
-      );
+      toast.error("Tanggal mulai aktual tidak boleh sebelum tanggal mulai planning");
       return;
     }
     if (new Date(selesai) < new Date(mulai)) {
@@ -736,7 +677,7 @@ function UpdateModal({
           { method: "PATCH", headers: ah, body: buildFD() },
         ),
         fetch(
-          `https://sulsel.cloud/api/master/progres/${tahapan.progres.idProgres}/aktual`,
+          `${process.env.NEXT_PUBLIC_BACKEND_API}/master/progres/${tahapan.progres.idProgres}/aktual`,
           { method: "PATCH", headers: ah, body: buildFD() },
         ),
       ]);
@@ -745,14 +686,10 @@ function UpdateModal({
       toast.dismiss(loadingToast);
       if (!resStaff.ok && !resMaster.ok)
         throw new Error(rs?.msg || rm?.msg || "Gagal menyimpan aktual");
-      if (resStaff.ok && !resMaster.ok && rm?.msg)
-        toast(`Master: ${rm.msg}`, { icon: "⚠️" });
-      if (!resStaff.ok && resMaster.ok && rs?.msg)
-        toast(`Staff: ${rs.msg}`, { icon: "⚠️" });
+      if (resStaff.ok && !resMaster.ok && rm?.msg) toast(`Master: ${rm.msg}`, { icon: "⚠️" });
+      if (!resStaff.ok && resMaster.ok && rs?.msg) toast(`Staff: ${rs.msg}`, { icon: "⚠️" });
       toast.success(
-        (resStaff.ok ? rs?.msg : null) ||
-          (resMaster.ok ? rm?.msg : null) ||
-          "Berhasil menyimpan data aktual",
+        (resStaff.ok ? rs?.msg : null) || (resMaster.ok ? rm?.msg : null) || "Berhasil menyimpan data aktual",
       );
       onClose();
       window.location.reload();
@@ -767,10 +704,7 @@ function UpdateModal({
     try {
       setLockLoading(true);
       const token = getCookie("accessToken");
-      if (!token) {
-        toast.error("Session habis, silakan login ulang");
-        return;
-      }
+      if (!token) { toast.error("Session habis, silakan login ulang"); return; }
       const headers = { Authorization: `Bearer ${token}` };
       const [resStaff, resMaster] = await Promise.all([
         fetch(
@@ -778,7 +712,7 @@ function UpdateModal({
           { method: "PATCH", headers },
         ),
         fetch(
-          `https://sulsel.cloud/api/master/progres/${tahapan.progres.idProgres}/selesai`,
+          `${process.env.NEXT_PUBLIC_BACKEND_API}/master/progres/${tahapan.progres.idProgres}/selesai`,
           { method: "PATCH", headers },
         ),
       ]);
@@ -786,10 +720,8 @@ function UpdateModal({
       const rm = await resMaster.json().catch(() => ({}));
       if (!resStaff.ok && !resMaster.ok)
         throw new Error(rs?.msg || rm?.msg || "Gagal mengunci tahapan");
-      if (resStaff.ok && !resMaster.ok && rm?.msg)
-        toast(`Master: ${rm.msg}`, { icon: "⚠️" });
-      if (!resStaff.ok && resMaster.ok && rs?.msg)
-        toast(`Staff: ${rs.msg}`, { icon: "⚠️" });
+      if (resStaff.ok && !resMaster.ok && rm?.msg) toast(`Master: ${rm.msg}`, { icon: "⚠️" });
+      if (!resStaff.ok && resMaster.ok && rs?.msg) toast(`Staff: ${rs.msg}`, { icon: "⚠️" });
       toast.success("Tahapan berhasil dikunci");
       onLock(tahapan.idTahapan);
       onClose();
@@ -806,29 +738,22 @@ function UpdateModal({
       <div className="px-7 pt-6 pb-7">
         <ModalHeader subtitle={tahapan.namaTahapan} onClose={onClose} />
         <div className="flex gap-4 mb-4 bg-gray-50 rounded-xl px-4 py-2.5 border border-gray-100">
-          <LastUpdateBadge
-            label="Last Update Aktual"
-            date={tahapan.progres.lastUpdateAktual}
-          />
+          <LastUpdateBadge label="Last Update Aktual" date={tahapan.progres.lastUpdateAktual} />
         </div>
         <p className="text-sm font-semibold text-gray-800 mb-3">
-          Realisasi Lapangan{" "}
-          <span className="italic font-normal">(actual)</span>
+          Realisasi Lapangan <span className="italic font-normal">(actual)</span>
         </p>
 
         <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 flex gap-4">
           <div className="flex-1">
-            <label className="block text-xs font-semibold text-gray-500 mb-1.5 tracking-wider">
-              MULAI AKTUAL
-            </label>
+            <label className="block text-xs font-semibold text-gray-500 mb-1.5 tracking-wider">MULAI AKTUAL</label>
             <input
               type="date"
               value={mulai}
               min={planningMulai || undefined}
               onChange={(e) => {
                 setMulai(e.target.value);
-                if (selesai && new Date(e.target.value) > new Date(selesai))
-                  setSelesai("");
+                if (selesai && new Date(e.target.value) > new Date(selesai)) setSelesai("");
               }}
               className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-400"
             />
@@ -839,9 +764,7 @@ function UpdateModal({
             )}
           </div>
           <div className="flex-1">
-            <label className="block text-xs font-semibold text-gray-500 mb-1.5 tracking-wider">
-              SELESAI AKTUAL
-            </label>
+            <label className="block text-xs font-semibold text-gray-500 mb-1.5 tracking-wider">SELESAI AKTUAL</label>
             <input
               type="date"
               value={selesai}
@@ -852,13 +775,11 @@ function UpdateModal({
             />
             {isTerlambat ? (
               <p className="text-[10px] text-red-500 mt-1">
-                ⚠️ Melewati plan:{" "}
-                <strong>{formatDisplayDate(planningSelesai)}</strong>
+                ⚠️ Melewati plan: <strong>{formatDisplayDate(planningSelesai)}</strong>
               </p>
             ) : planningSelesai ? (
               <p className="text-[10px] text-gray-400 mt-1">
-                Plan selesai:{" "}
-                <strong>{formatDisplayDate(planningSelesai)}</strong>
+                Plan selesai: <strong>{formatDisplayDate(planningSelesai)}</strong>
               </p>
             ) : null}
           </div>
@@ -886,10 +807,7 @@ function UpdateModal({
               className="hidden"
               onChange={(e) => {
                 const f = e.target.files?.[0];
-                if (f) {
-                  setSelectedFile(f);
-                  setFileName(f.name);
-                }
+                if (f) { setSelectedFile(f); setFileName(f.name); }
               }}
             />
           </div>
@@ -899,44 +817,30 @@ function UpdateModal({
           <label className="block text-sm font-semibold text-gray-700 mb-1.5">
             Keterangan Baru
             {isTerlambat ? (
-              <span className="ml-1 text-red-500 font-normal text-xs">
-                (Wajib karena melewati planning)
-              </span>
+              <span className="ml-1 text-red-500 font-normal text-xs">(Wajib karena melewati planning)</span>
             ) : (
-              <span className="ml-1 text-gray-400 font-normal text-xs">
-                (Opsional)
-              </span>
+              <span className="ml-1 text-gray-400 font-normal text-xs">(Opsional)</span>
             )}
           </label>
           <textarea
             value={keterangan}
             onChange={(e) => setKeterangan(e.target.value)}
-            placeholder={
-              isTerlambat
-                ? "Jelaskan alasan keterlambatan..."
-                : "Catatan tambahan (opsional)..."
-            }
+            placeholder={isTerlambat ? "Jelaskan alasan keterlambatan..." : "Catatan tambahan (opsional)..."}
             rows={3}
             className={`w-full border rounded-xl px-3 py-2 text-sm text-gray-700 resize-none focus:outline-none focus:ring-2 placeholder:text-gray-400 ${isTerlambat ? "border-red-200 bg-red-50 focus:ring-red-400" : "border-gray-200 bg-gray-50 focus:ring-green-400"}`}
           />
           <p className="text-[10px] text-gray-400 mt-1">
-            Keterangan akan ditambahkan ke riwayat. Riwayat lengkap dapat
-            dilihat pada tabel.
+            Keterangan akan ditambahkan ke riwayat. Riwayat lengkap dapat dilihat pada tabel.
           </p>
         </div>
 
         {confirmLock ? (
           <div className="mt-4 bg-orange-50 border border-orange-200 rounded-xl p-4">
             <p className="text-sm font-semibold text-orange-700 mb-3">
-              ⚠️ Yakin ingin menandai tahapan ini sebagai{" "}
-              <strong>Selesai</strong>? Tombol PLAN &amp; ACTUAL tidak dapat
-              diakses lagi.
+              ⚠️ Yakin ingin menandai tahapan ini sebagai <strong>Selesai</strong>? Tombol PLAN &amp; ACTUAL tidak dapat diakses lagi.
             </p>
             <div className="flex gap-2">
-              <button
-                onClick={() => setConfirmLock(false)}
-                className="flex-1 py-2 rounded-xl text-xs font-semibold text-gray-500 bg-gray-100 hover:bg-gray-200"
-              >
+              <button onClick={() => setConfirmLock(false)} className="flex-1 py-2 rounded-xl text-xs font-semibold text-gray-500 bg-gray-100 hover:bg-gray-200">
                 Batal
               </button>
               <button
@@ -959,10 +863,7 @@ function UpdateModal({
         )}
 
         <div className="flex gap-3 mt-4">
-          <button
-            onClick={onClose}
-            className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-gray-500 bg-gray-100 hover:bg-gray-200"
-          >
+          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-gray-500 bg-gray-100 hover:bg-gray-200">
             BATALKAN
           </button>
           <button
@@ -989,10 +890,7 @@ async function handleOpenPDF(dokumenBukti: any[]) {
     return;
   }
   const token = getCookie("accessToken");
-  if (!token) {
-    toast.error("Session habis, silakan login ulang");
-    return;
-  }
+  if (!token) { toast.error("Session habis, silakan login ulang"); return; }
   window.open(`https://sulsel.cloud${dokumenBukti[0].fileUrl}`, "_blank");
 }
 
@@ -1022,8 +920,7 @@ export default function TimelineTable({
     const token = getCookie("accessToken");
     if (!token || typeof token !== "string") return false;
     const payload = decodeJwtPayload(token);
-    const role: string =
-      payload?.role ?? payload?.roles ?? payload?.user?.role ?? "";
+    const role: string = payload?.role ?? payload?.roles ?? payload?.user?.role ?? "";
     return role.toLowerCase() === "gubernur";
   })();
   const canEditTimeline = !isGubernur;
@@ -1087,19 +984,12 @@ export default function TimelineTable({
           { color: "#f59e0b", label: "Forecasting" },
         ].map(({ color, label }) => (
           <div key={label} className="flex items-center gap-1.5">
-            <div
-              className="w-6 h-2 rounded-full"
-              style={{ backgroundColor: color }}
-            />
+            <div className="w-6 h-2 rounded-full" style={{ backgroundColor: color }} />
             <span>{label}</span>
           </div>
         ))}
         <div className="flex items-center gap-1.5">
-          <Lock
-            size={12}
-            className="text-orange-500"
-            aria-label="Tahapan Terkunci"
-          />
+          <Lock size={12} className="text-orange-500" aria-label="Tahapan Terkunci" />
           <span>Tahapan Terkunci</span>
         </div>
       </div>
@@ -1172,21 +1062,11 @@ export default function TimelineTable({
               <table className="min-w-full text-sm border-collapse">
                 <thead className="invisible" aria-hidden="true">
                   <tr>
-                    <th
-                      className="w-52 min-w-[200px] border border-gray-200 px-4 py-3"
-                      rowSpan={2}
-                    />
+                    <th className="w-52 min-w-[200px] border border-gray-200 px-4 py-3" rowSpan={2} />
                     {monthGroups.map((g) => (
-                      <th
-                        key={g.key}
-                        colSpan={g.count}
-                        className="border border-gray-200 py-2"
-                      />
+                      <th key={g.key} colSpan={g.count} className="border border-gray-200 py-2" />
                     ))}
-                    <th
-                      className="w-64 min-w-[250px] border border-gray-200 px-4 py-3"
-                      rowSpan={2}
-                    />
+                    <th className="w-64 min-w-[250px] border border-gray-200 px-4 py-3" rowSpan={2} />
                   </tr>
                   <tr>
                     {columns.map((_, i) => (
@@ -1203,24 +1083,15 @@ export default function TimelineTable({
                     // ── Forecast keseluruhan dari BE ───────────────────────────
                     const fk = pengadaan.forecastKeseluruhan;
                     const planEndKeseluruhan = fk?.planTanggalSelesaiKeseluruhan
-                      ? parseLocalDate(
-                          fk.planTanggalSelesaiKeseluruhan,
-                        ).getTime()
+                      ? parseLocalDate(fk.planTanggalSelesaiKeseluruhan).getTime()
                       : null;
-                    const forecastEndKeseluruhan =
-                      fk?.forecastTanggalSelesaiKeseluruhan
-                        ? parseLocalDate(
-                            fk.forecastTanggalSelesaiKeseluruhan,
-                          ).getTime()
-                        : null;
+                    const forecastEndKeseluruhan = fk?.forecastTanggalSelesaiKeseluruhan
+                      ? parseLocalDate(fk.forecastTanggalSelesaiKeseluruhan).getTime()
+                      : null;
 
                     const deltaMs =
-                      planEndKeseluruhan !== null &&
-                      forecastEndKeseluruhan !== null
-                        ? Math.max(
-                            0,
-                            forecastEndKeseluruhan - planEndKeseluruhan,
-                          )
+                      planEndKeseluruhan !== null && forecastEndKeseluruhan !== null
+                        ? Math.max(0, forecastEndKeseluruhan - planEndKeseluruhan)
                         : 0;
 
                     const lastPlanEndCol =
@@ -1238,12 +1109,8 @@ export default function TimelineTable({
 
                     // Hitung keterlambatan hari untuk baris forecast program
                     const forecastDelayDays =
-                      planEndKeseluruhan !== null &&
-                      forecastEndKeseluruhan !== null
-                        ? Math.round(
-                            (forecastEndKeseluruhan - planEndKeseluruhan) /
-                              DAY_MS,
-                          )
+                      planEndKeseluruhan !== null && forecastEndKeseluruhan !== null
+                        ? Math.round((forecastEndKeseluruhan - planEndKeseluruhan) / DAY_MS)
                         : 0;
 
                     return [
@@ -1263,53 +1130,28 @@ export default function TimelineTable({
                           lockedTahapan.has(tahapan.idTahapan);
 
                         // ── Kolom plan & aktual ──────────────────────────────
-                        const planStart = getColIndex(
-                          columns,
-                          tahapan.progres.planningTanggalMulai,
-                        );
-                        const planEnd = getColIndex(
-                          columns,
-                          tahapan.progres.planningTanggalSelesai,
-                        );
-                        const actualStart = getColIndex(
-                          columns,
-                          tahapan.progres.aktualTanggalMulai,
-                        );
-                        const actualEnd = getColIndex(
-                          columns,
-                          tahapan.progres.aktualTanggalSelesai,
-                        );
+                        const planStart = getColIndex(columns, tahapan.progres.planningTanggalMulai);
+                        const planEnd = getColIndex(columns, tahapan.progres.planningTanggalSelesai);
+                        const actualStart = getColIndex(columns, tahapan.progres.aktualTanggalMulai);
+                        const actualEnd = getColIndex(columns, tahapan.progres.aktualTanggalSelesai);
 
                         let actualBarColor = "#dc2626";
-                        if (
-                          tahapan.progres.aktualTanggalSelesai &&
-                          tahapan.progres.planningTanggalSelesai
-                        ) {
+                        if (tahapan.progres.aktualTanggalSelesai && tahapan.progres.planningTanggalSelesai) {
                           actualBarColor =
-                            parseLocalDate(
-                              tahapan.progres.aktualTanggalSelesai,
-                            ) <=
-                            parseLocalDate(
-                              tahapan.progres.planningTanggalSelesai,
-                            )
+                            parseLocalDate(tahapan.progres.aktualTanggalSelesai) <=
+                            parseLocalDate(tahapan.progres.planningTanggalSelesai)
                               ? "#22c55e"
                               : "#dc2626";
                         }
 
                         const planSpan =
-                          planStart >= 0 && planEnd >= planStart
-                            ? planEnd - planStart + 1
-                            : 0;
+                          planStart >= 0 && planEnd >= planStart ? planEnd - planStart + 1 : 0;
                         const actualSpan =
-                          actualStart >= 0 && actualEnd >= actualStart
-                            ? actualEnd - actualStart + 1
-                            : 0;
+                          actualStart >= 0 && actualEnd >= actualStart ? actualEnd - actualStart + 1 : 0;
 
                         // ── Forecast dari BE ─────────────────────────────────
-                        const fcMulai =
-                          tahapan.forecast?.forecastTanggalMulai ?? null;
-                        const fcSelesai =
-                          tahapan.forecast?.forecastTanggalSelesai ?? null;
+                        const fcMulai = tahapan.forecast?.forecastTanggalMulai ?? null;
+                        const fcSelesai = tahapan.forecast?.forecastTanggalSelesai ?? null;
 
                         const forecastStartMs = fcMulai
                           ? parseLocalDate(fcMulai).getTime()
@@ -1319,24 +1161,44 @@ export default function TimelineTable({
                           : null;
 
                         const planEndMs = tahapan.progres.planningTanggalSelesai
-                          ? parseLocalDate(
-                              tahapan.progres.planningTanggalSelesai,
-                            ).getTime()
+                          ? parseLocalDate(tahapan.progres.planningTanggalSelesai).getTime()
                           : -1;
 
-                        // Tampilkan bar forecast hanya jika:
-                        // - ada data forecast dari BE
-                        // - ada planning
-                        // - tahapan belum locked
-                        // - status tahapan BUKAN terlambat
                         const barStatus = getTahapanBarStatus(tahapan);
+                        const hasAktualMulai = !!tahapan.progres.aktualTanggalMulai;
+                        const isAktualTerlambat = hasAktualMulai && barStatus === "terlambat";
                         const showForecastBar =
                           forecastStartMs !== null &&
                           forecastEndMs !== null &&
                           planStart >= 0 &&
                           planEnd >= planStart &&
                           !isLocked &&
-                          barStatus !== "terlambat";
+                          !isAktualTerlambat;
+
+                        // ── DEBUG FORECAST ────────────────────────────────────
+                        const _fcBarStart = forecastStartMs !== null ? getColIndexFromMs(columns, forecastStartMs) : -1;
+                        const _fcBarEnd   = forecastEndMs   !== null ? getColIndexFromMs(columns, forecastEndMs)   : -1;
+                        console.log(
+                          `[FORECAST] ${pengadaan.namaTransaksi} › #${tahapan.noUrut} ${tahapan.namaTahapan}`,
+                          {
+                            "forecast (BE)"    : tahapan.forecast,
+                            fcMulai,
+                            fcSelesai,
+                            forecastStartMs    : forecastStartMs ? new Date(forecastStartMs).toLocaleDateString("id-ID") : null,
+                            forecastEndMs      : forecastEndMs   ? new Date(forecastEndMs).toLocaleDateString("id-ID")   : null,
+                            planStart,
+                            planEnd,
+                            isLocked,
+                            barStatus,
+                            hasAktualMulai,
+                            isAktualTerlambat,
+                            showForecastBar,
+                            forecastBarStart   : _fcBarStart,
+                            forecastBarEnd     : _fcBarEnd,
+                            colRangeValid      : _fcBarStart >= 0 && _fcBarEnd >= _fcBarStart,
+                          },
+                        );
+                        // ─────────────────────────────────────────────────────
 
                         const isDelayed =
                           forecastEndMs !== null &&
@@ -1349,73 +1211,41 @@ export default function TimelineTable({
                         // ── Isi sel-sel timeline ─────────────────────────────
                         const cells = Array(columns.length)
                           .fill(null)
-                          .map(() => ({
-                            plan: false,
-                            actual: false,
-                            forecast: false,
-                          }));
+                          .map(() => ({ plan: false, actual: false, forecast: false }));
 
                         if (planSpan > 0)
-                          for (
-                            let i = planStart;
-                            i <= planEnd && i < columns.length;
-                            i++
-                          )
+                          for (let i = planStart; i <= planEnd && i < columns.length; i++)
                             cells[i].plan = true;
                         if (actualSpan > 0)
-                          for (
-                            let i = actualStart;
-                            i <= actualEnd && i < columns.length;
-                            i++
-                          )
+                          for (let i = actualStart; i <= actualEnd && i < columns.length; i++)
                             cells[i].actual = true;
 
                         if (showForecastBar) {
-                          const forecastBarStart = getColIndexFromMs(
-                            columns,
-                            forecastStartMs!,
-                          );
-                          const forecastBarEnd = getColIndexFromMs(
-                            columns,
-                            forecastEndMs!,
-                          );
-                          if (
-                            forecastBarStart >= 0 &&
-                            forecastBarEnd >= forecastBarStart
-                          )
-                            for (
-                              let i = forecastBarStart;
-                              i <= forecastBarEnd && i < columns.length;
-                              i++
-                            )
+                          const forecastBarStart = getColIndexFromMs(columns, forecastStartMs!);
+                          const forecastBarEnd = getColIndexFromMs(columns, forecastEndMs!);
+                          if (forecastBarStart >= 0 && forecastBarEnd >= forecastBarStart)
+                            for (let i = forecastBarStart; i <= forecastBarEnd && i < columns.length; i++)
                               cells[i].forecast = true;
                         }
 
                         const prevTahapanSelesai =
                           tahapanIdx > 0
-                            ? (pengadaan.tahapanList[tahapanIdx - 1]?.progres
-                                .planningTanggalSelesai ?? null)
+                            ? (pengadaan.tahapanList[tahapanIdx - 1]?.progres.planningTanggalSelesai ?? null)
                             : null;
 
                         // ── Keterangan ───────────────────────────────────────
-                        const keteranganList = normalizeKeterangan(
-                          tahapan.progres.keterangan,
-                        );
+                        const keteranganList = normalizeKeterangan(tahapan.progres.keterangan);
                         const latestKeterangan =
-                          keteranganList.length > 0
-                            ? keteranganList[keteranganList.length - 1]
-                            : null;
+                          keteranganList.length > 0 ? keteranganList[keteranganList.length - 1] : null;
                         const hasMoreKeterangan = keteranganList.length > 1;
 
                         // ── Tooltip titles ───────────────────────────────────
                         const planTitle =
-                          tahapan.progres.planningTanggalMulai &&
-                          tahapan.progres.planningTanggalSelesai
+                          tahapan.progres.planningTanggalMulai && tahapan.progres.planningTanggalSelesai
                             ? `Planning: ${formatDisplayDate(tahapan.progres.planningTanggalMulai)} → ${formatDisplayDate(tahapan.progres.planningTanggalSelesai)}`
                             : "";
                         const actualTitle =
-                          tahapan.progres.aktualTanggalMulai &&
-                          tahapan.progres.aktualTanggalSelesai
+                          tahapan.progres.aktualTanggalMulai && tahapan.progres.aktualTanggalSelesai
                             ? `Aktual: ${formatDisplayDate(tahapan.progres.aktualTanggalMulai)} → ${formatDisplayDate(tahapan.progres.aktualTanggalSelesai)}`
                             : tahapan.progres.aktualTanggalMulai
                               ? `Aktual mulai: ${formatDisplayDate(tahapan.progres.aktualTanggalMulai)} (sedang berjalan)`
@@ -1442,75 +1272,44 @@ export default function TimelineTable({
                                       {tahapan.namaTahapan}
                                     </div>
                                     {isLocked && (
-                                      <Lock
-                                        size={10}
-                                        className="text-orange-500 shrink-0"
-                                        aria-label="Tahapan terkunci"
-                                      />
+                                      <Lock size={10} className="text-orange-500 shrink-0" aria-label="Tahapan terkunci" />
                                     )}
                                   </div>
                                   <div className="mt-1 space-y-0.5">
                                     {tahapan.progres.lastUpdatePlan && (
                                       <div className="text-[9px] text-gray-400 flex items-center gap-1">
-                                        <span className="font-semibold">
-                                          Plan:
-                                        </span>
-                                        <span>
-                                          {formatDisplayDate(
-                                            tahapan.progres.lastUpdatePlan,
-                                          )}
-                                        </span>
+                                        <span className="font-semibold">Plan:</span>
+                                        <span>{formatDisplayDate(tahapan.progres.lastUpdatePlan)}</span>
                                       </div>
                                     )}
                                     {tahapan.progres.lastUpdateAktual && (
                                       <div className="text-[9px] text-gray-400 flex items-center gap-1">
-                                        <span className="font-semibold">
-                                          Aktual:
-                                        </span>
-                                        <span>
-                                          {formatDisplayDate(
-                                            tahapan.progres.lastUpdateAktual,
-                                          )}
-                                        </span>
+                                        <span className="font-semibold">Aktual:</span>
+                                        <span>{formatDisplayDate(tahapan.progres.lastUpdateAktual)}</span>
                                       </div>
                                     )}
-                                    {/* Tampilkan forecast selesai dari BE — hanya jika tidak terlambat */}
-                                    {fcSelesai &&
-                                      !isLocked &&
-                                      barStatus !== "terlambat" && (
-                                        <div
-                                          className={`text-[9px] flex items-center gap-1 font-semibold ${isDelayed ? "text-amber-500" : "text-gray-400"}`}
-                                        >
-                                          <span>Forecast:</span>
-                                          <span>
-                                            {formatDisplayDate(fcSelesai)}
+                                    {/* Tampilkan forecast selesai dari BE — hanya jika tidak terlambat berdasarkan aktual */}
+                                    {fcSelesai && !isLocked && !isAktualTerlambat && (
+                                      <div
+                                        className={`text-[9px] flex items-center gap-1 font-semibold ${isDelayed ? "text-amber-500" : "text-gray-400"}`}
+                                      >
+                                        <span>Forecast:</span>
+                                        <span>{formatDisplayDate(fcSelesai)}</span>
+                                        {varianceDays !== 0 && (
+                                          <span className={`font-normal ${varianceDays > 0 ? "text-red-400" : "text-green-500"}`}>
+                                            ({varianceDays > 0 ? "+" : ""}{varianceDays}h)
                                           </span>
-                                          {varianceDays !== 0 && (
-                                            <span
-                                              className={`font-normal ${varianceDays > 0 ? "text-red-400" : "text-green-500"}`}
-                                            >
-                                              ({varianceDays > 0 ? "+" : ""}
-                                              {varianceDays}h)
-                                            </span>
-                                          )}
-                                          {isDelayed && (
-                                            <span className="font-normal text-amber-400">
-                                              (terlambat)
-                                            </span>
-                                          )}
-                                        </div>
-                                      )}
+                                        )}
+                                        {isDelayed && (
+                                          <span className="font-normal text-amber-400">(terlambat)</span>
+                                        )}
+                                      </div>
+                                    )}
                                   </div>
                                   <div className="flex gap-1 mt-2 flex-wrap">
                                     <button
-                                      onClick={() =>
-                                        handleOpenPDF(
-                                          tahapan.progres.dokumenBukti,
-                                        )
-                                      }
-                                      disabled={
-                                        !tahapan.progres.dokumenBukti?.length
-                                      }
+                                      onClick={() => handleOpenPDF(tahapan.progres.dokumenBukti)}
+                                      disabled={!tahapan.progres.dokumenBukti?.length}
                                       className={`px-2 py-0.5 text-[10px] border rounded-full shadow-sm ${tahapan.progres.dokumenBukti?.length ? "border-gray-300 text-black hover:bg-gray-50" : "border-gray-200 text-gray-400 cursor-not-allowed"}`}
                                     >
                                       PDF
@@ -1518,25 +1317,13 @@ export default function TimelineTable({
                                     {canEditTimeline && !isLocked && (
                                       <>
                                         <button
-                                          onClick={() =>
-                                            setModal({
-                                              type: "plan",
-                                              tahapan,
-                                              prevTahapanSelesai,
-                                            })
-                                          }
+                                          onClick={() => setModal({ type: "plan", tahapan, prevTahapanSelesai })}
                                           className="px-2 py-0.5 text-[10px] border bg-gray-300 border-gray-300 rounded-full text-black hover:bg-gray-100 active:scale-95 transition-all shadow-sm"
                                         >
                                           PLAN
                                         </button>
                                         <button
-                                          onClick={() =>
-                                            setModal({
-                                              type: "update",
-                                              tahapan,
-                                              prevTahapanSelesai,
-                                            })
-                                          }
+                                          onClick={() => setModal({ type: "update", tahapan, prevTahapanSelesai })}
                                           className="px-2 py-0.5 text-[10px] bg-red-600 text-white rounded-full hover:bg-red-700 active:scale-95 transition-all shadow-sm"
                                         >
                                           ACTUAL
@@ -1557,8 +1344,7 @@ export default function TimelineTable({
                             {/* Timeline cells */}
                             {columns.map((_, i) => {
                               const cell = cells[i];
-                              const hasAktual =
-                                !!tahapan.progres.aktualTanggalMulai;
+                              const hasAktual = !!tahapan.progres.aktualTanggalMulai;
                               return (
                                 <td
                                   key={i}
@@ -1580,9 +1366,7 @@ export default function TimelineTable({
                                           <div
                                             className="absolute left-0 right-0 top-0 h-2 rounded-full"
                                             title={actualTitle}
-                                            style={{
-                                              backgroundColor: actualBarColor,
-                                            }}
+                                            style={{ backgroundColor: actualBarColor }}
                                           />
                                         )}
                                       </div>
@@ -1613,23 +1397,14 @@ export default function TimelineTable({
                                       <p className="text-gray-700 line-clamp-3">
                                         {latestKeterangan.catatan}
                                       </p>
-                                      {(latestKeterangan.tanggal ||
-                                        latestKeterangan.penulis) && (
+                                      {(latestKeterangan.tanggal || latestKeterangan.penulis) && (
                                         <p className="text-[9px] text-gray-400 mt-0.5">
                                           {latestKeterangan.penulis && (
-                                            <span className="font-semibold">
-                                              {latestKeterangan.penulis}
-                                            </span>
+                                            <span className="font-semibold">{latestKeterangan.penulis}</span>
                                           )}
-                                          {latestKeterangan.penulis &&
-                                            latestKeterangan.tanggal &&
-                                            " · "}
+                                          {latestKeterangan.penulis && latestKeterangan.tanggal && " · "}
                                           {latestKeterangan.tanggal && (
-                                            <span>
-                                              {formatDisplayDate(
-                                                latestKeterangan.tanggal,
-                                              )}
-                                            </span>
+                                            <span>{formatDisplayDate(latestKeterangan.tanggal)}</span>
                                           )}
                                         </p>
                                       )}
@@ -1648,16 +1423,11 @@ export default function TimelineTable({
                                     {hasMoreKeterangan
                                       ? `Lihat semua (${keteranganList.length} catatan)`
                                       : "Lihat detail"}
-                                    <ChevronRight
-                                      size={10}
-                                      className="group-hover:translate-x-0.5 transition-transform"
-                                    />
+                                    <ChevronRight size={10} className="group-hover:translate-x-0.5 transition-transform" />
                                   </button>
                                 </div>
                               ) : (
-                                <span className="text-gray-400 italic">
-                                  Belum ada keterangan
-                                </span>
+                                <span className="text-gray-400 italic">Belum ada keterangan</span>
                               )}
                             </td>
                           </tr>
@@ -1667,23 +1437,17 @@ export default function TimelineTable({
                       // ── Baris estimasi selesai program (dari forecastKeseluruhan BE) ──
                       ...(showProgramForecast
                         ? [
-                            <tr
-                              key={`forecast-row-${pengadaan.id}`}
-                              className="bg-amber-50/60"
-                            >
+                            <tr key={`forecast-row-${pengadaan.id}`} className="bg-amber-50/60">
                               <td className="border border-gray-200 px-3 py-1.5">
                                 <div className="text-[10px] text-amber-700 font-semibold">
                                   📅 Estimasi Selesai Program
                                 </div>
                                 <div className="text-[10px] text-amber-600 mt-0.5">
-                                  {formatDisplayDate(
-                                    fk!.forecastTanggalSelesaiKeseluruhan,
-                                  )}
+                                  {formatDisplayDate(fk!.forecastTanggalSelesaiKeseluruhan)}
                                   <span
                                     className={`ml-1 font-bold ${forecastDelayDays > 0 ? "text-red-500" : forecastDelayDays < 0 ? "text-green-500" : "text-gray-400"}`}
                                   >
-                                    {forecastDelayDays > 0 ? "+" : ""}
-                                    {forecastDelayDays} hari
+                                    {forecastDelayDays > 0 ? "+" : ""}{forecastDelayDays} hari
                                   </span>
                                 </div>
                               </td>
@@ -1693,13 +1457,12 @@ export default function TimelineTable({
                                   className="border border-gray-200 p-0 relative"
                                   style={{ height: 24 }}
                                 >
-                                  {i > lastPlanEndCol &&
-                                    i <= overallForecastCol && (
-                                      <div
-                                        className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-1.5 opacity-50"
-                                        style={{ backgroundColor: "#f59e0b" }}
-                                      />
-                                    )}
+                                  {i > lastPlanEndCol && i <= overallForecastCol && (
+                                    <div
+                                      className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-1.5 opacity-50"
+                                      style={{ backgroundColor: "#f59e0b" }}
+                                    />
+                                  )}
                                   {i === overallForecastCol && (
                                     <div className="absolute inset-0 flex items-center justify-center">
                                       <div

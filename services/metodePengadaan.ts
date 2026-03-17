@@ -25,8 +25,8 @@ export const getMetodePengadaan = async (
     const token = getCookie("accessToken");
 
     const endpointMap: Record<RoleType, string> = {
-      staff: "https://sulsel.cloud/api/staff/pengadaan",
-      admin: "https://sulsel.cloud/api/master/pengadaan",
+      staff: `${process.env.NEXT_PUBLIC_BACKEND_API}/staff/pengadaan`,
+      admin: `${process.env.NEXT_PUBLIC_BACKEND_API}/master/pengadaan`,
     };
 
     const res = await fetch(endpointMap[role], {
