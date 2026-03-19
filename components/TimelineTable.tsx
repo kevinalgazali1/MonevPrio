@@ -675,11 +675,12 @@ function UpdateModal({
 
   const minMulaiAktual: string | undefined = (() => {
     if (planningMulai && prevAktualSelesaiFormatted) {
-      return planningMulai >= prevAktualSelesaiFormatted
-        ? planningMulai
-        : prevAktualSelesaiFormatted;
+      return parseLocalDate(prevAktualSelesaiFormatted) >
+        parseLocalDate(planningMulai)
+        ? prevAktualSelesaiFormatted
+        : planningMulai;
     }
-    return planningMulai || prevAktualSelesaiFormatted || undefined;
+    return prevAktualSelesaiFormatted || planningMulai || undefined;
   })();
 
   const [mulai, setMulai] = useState(() => {
@@ -719,7 +720,7 @@ function UpdateModal({
         minMulaiAktual === prevAktualSelesaiFormatted
       ) {
         toast.error(
-          `Tanggal mulai aktual tidak boleh sebelum selesai aktual tahapan sebelumnya (${formatDisplayDate(prevAktualSelesaiFormatted)})`,
+          `Tanggal mulai aktual tidak boleh sebelum selesai aktual terbesar (${formatDisplayDate(prevAktualSelesaiFormatted)})`,
         );
       } else {
         toast.error(
@@ -860,12 +861,11 @@ function UpdateModal({
               <p className="text-[10px] text-gray-400 mt-1">
                 Min: <strong>{formatDisplayDate(minMulaiAktual)}</strong>
                 {prevAktualSelesaiFormatted &&
-                  minMulaiAktual === prevAktualSelesaiFormatted && (
-                    <span className="ml-1 text-amber-500">
-                      (selesai aktual sebelumnya)
-                    </span>
-                  )}
-                {planningMulai && minMulaiAktual === planningMulai && (
+                minMulaiAktual === prevAktualSelesaiFormatted ? (
+                  <span className="ml-1 text-amber-500">
+                    (selesai aktual terbesar)
+                  </span>
+                ) : (
                   <span className="ml-1 text-blue-400">(mulai planning)</span>
                 )}
               </p>
@@ -1247,15 +1247,6 @@ export default function TimelineTable({
                           ).getTime()
                         : null;
 
-                    const deltaMs =
-                      planEndKeseluruhan !== null &&
-                      forecastEndKeseluruhan !== null
-                        ? Math.max(
-                            0,
-                            forecastEndKeseluruhan - planEndKeseluruhan,
-                          )
-                        : 0;
-
                     const lastPlanEndCol =
                       planEndKeseluruhan !== null
                         ? getColIndexFromMs(columns, planEndKeseluruhan)
@@ -1369,44 +1360,6 @@ export default function TimelineTable({
                           !isLocked &&
                           !isAktualTerlambat;
 
-                        // ── DEBUG FORECAST ────────────────────────────────────
-                        const _fcBarStart =
-                          forecastStartMs !== null
-                            ? getColIndexFromMs(columns, forecastStartMs)
-                            : -1;
-                        const _fcBarEnd =
-                          forecastEndMs !== null
-                            ? getColIndexFromMs(columns, forecastEndMs)
-                            : -1;
-                        console.log(
-                          `[FORECAST] ${pengadaan.namaTransaksi} › #${tahapan.noUrut} ${tahapan.namaTahapan}`,
-                          {
-                            "forecast (BE)": tahapan.forecast,
-                            fcMulai,
-                            fcSelesai,
-                            forecastStartMs: forecastStartMs
-                              ? new Date(forecastStartMs).toLocaleDateString(
-                                  "id-ID",
-                                )
-                              : null,
-                            forecastEndMs: forecastEndMs
-                              ? new Date(forecastEndMs).toLocaleDateString(
-                                  "id-ID",
-                                )
-                              : null,
-                            planStart,
-                            planEnd,
-                            isLocked,
-                            barStatus,
-                            hasAktualMulai,
-                            isAktualTerlambat,
-                            showForecastBar,
-                            forecastBarStart: _fcBarStart,
-                            forecastBarEnd: _fcBarEnd,
-                            colRangeValid:
-                              _fcBarStart >= 0 && _fcBarEnd >= _fcBarStart,
-                          },
-                        );
                         // ─────────────────────────────────────────────────────
 
                         const isDelayed =
@@ -1468,11 +1421,31 @@ export default function TimelineTable({
                                 .planningTanggalSelesai ?? null)
                             : null;
 
-                        const prevTahapanAktualSelesai =
-                          tahapanIdx > 0
-                            ? (pengadaan.tahapanList[tahapanIdx - 1]?.progres
-                                .aktualTanggalSelesai ?? null)
-                            : null;
+                        const prevTahapanAktualSelesai = (() => {
+                          const originalPengadaan = pengadaanList.find(
+                            (p) => p.id === pengadaan.id,
+                          );
+                          const allAktualSelesai = (
+                            originalPengadaan?.tahapanList ??
+                            pengadaan.tahapanList
+                          )
+                            .filter(
+                              (t) =>
+                                t.idTahapan !== tahapan.idTahapan &&
+                                !!t.progres.aktualTanggalSelesai,
+                            )
+                            .map(
+                              (t) => t.progres.aktualTanggalSelesai as string,
+                            );
+
+                          if (allAktualSelesai.length === 0) return null;
+
+                          return allAktualSelesai.reduce((latest, current) =>
+                            parseLocalDate(current) > parseLocalDate(latest)
+                              ? current
+                              : latest,
+                          );
+                        })();
 
                         // ── Keterangan ───────────────────────────────────────
                         const keteranganList = normalizeKeterangan(
