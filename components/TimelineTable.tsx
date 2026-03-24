@@ -669,24 +669,17 @@ function UpdateModal({
     : "";
   const planningSelesai = tahapan.progres.planningTanggalSelesai;
 
-  const prevAktualSelesaiFormatted = prevTahapanAktualSelesai
-    ? formatDateForInput(prevTahapanAktualSelesai)
+  const forecastMulaiFormatted = tahapan.forecast?.forecastTanggalMulai
+    ? formatDateForInput(tahapan.forecast.forecastTanggalMulai)
     : "";
 
-  const minMulaiAktual: string | undefined = (() => {
-    if (planningMulai && prevAktualSelesaiFormatted) {
-      return parseLocalDate(prevAktualSelesaiFormatted) >
-        parseLocalDate(planningMulai)
-        ? prevAktualSelesaiFormatted
-        : planningMulai;
-    }
-    return prevAktualSelesaiFormatted || planningMulai || undefined;
-  })();
+  const minMulaiAktual: string | undefined =
+    forecastMulaiFormatted || planningMulai || undefined;
 
   const [mulai, setMulai] = useState(() => {
     const existing = formatDateForInput(tahapan.progres.aktualTanggalMulai);
     if (existing) return existing;
-    return minMulaiAktual || planningMulai;
+    return forecastMulaiFormatted || planningMulai;
   });
   const [selesai, setSelesai] = useState(
     formatDateForInput(tahapan.progres.aktualTanggalSelesai),
@@ -715,12 +708,9 @@ function UpdateModal({
       return;
     }
     if (minMulaiAktual && new Date(mulai) < new Date(minMulaiAktual)) {
-      if (
-        prevAktualSelesaiFormatted &&
-        minMulaiAktual === prevAktualSelesaiFormatted
-      ) {
+      if (forecastMulaiFormatted && minMulaiAktual === forecastMulaiFormatted) {
         toast.error(
-          `Tanggal mulai aktual tidak boleh sebelum selesai aktual terbesar (${formatDisplayDate(prevAktualSelesaiFormatted)})`,
+          `Tanggal mulai aktual tidak boleh sebelum tanggal mulai forecast (${formatDisplayDate(forecastMulaiFormatted)})`,
         );
       } else {
         toast.error(
@@ -860,11 +850,9 @@ function UpdateModal({
             {minMulaiAktual && (
               <p className="text-[10px] text-gray-400 mt-1">
                 Min: <strong>{formatDisplayDate(minMulaiAktual)}</strong>
-                {prevAktualSelesaiFormatted &&
-                minMulaiAktual === prevAktualSelesaiFormatted ? (
-                  <span className="ml-1 text-amber-500">
-                    (selesai aktual terbesar)
-                  </span>
+                {forecastMulaiFormatted &&
+                minMulaiAktual === forecastMulaiFormatted ? (
+                  <span className="ml-1 text-amber-500">(mulai forecast)</span>
                 ) : (
                   <span className="ml-1 text-blue-400">(mulai planning)</span>
                 )}
@@ -1422,28 +1410,19 @@ export default function TimelineTable({
                             : null;
 
                         const prevTahapanAktualSelesai = (() => {
+                          if (tahapanIdx === 0) return null;
                           const originalPengadaan = pengadaanList.find(
                             (p) => p.id === pengadaan.id,
                           );
-                          const allAktualSelesai = (
+                          const list =
                             originalPengadaan?.tahapanList ??
-                            pengadaan.tahapanList
-                          )
-                            .filter(
-                              (t) =>
-                                t.idTahapan !== tahapan.idTahapan &&
-                                !!t.progres.aktualTanggalSelesai,
-                            )
-                            .map(
-                              (t) => t.progres.aktualTanggalSelesai as string,
-                            );
-
-                          if (allAktualSelesai.length === 0) return null;
-
-                          return allAktualSelesai.reduce((latest, current) =>
-                            parseLocalDate(current) > parseLocalDate(latest)
-                              ? current
-                              : latest,
+                            pengadaan.tahapanList;
+                          const currentNoUrut = tahapan.noUrut;
+                          const prevTahapan = list
+                            .filter((t) => t.noUrut < currentNoUrut)
+                            .sort((a, b) => b.noUrut - a.noUrut)[0];
+                          return (
+                            prevTahapan?.progres.aktualTanggalSelesai ?? null
                           );
                         })();
 
@@ -1579,19 +1558,67 @@ export default function TimelineTable({
                                         >
                                           PLAN
                                         </button>
-                                        <button
-                                          onClick={() =>
-                                            setModal({
-                                              type: "update",
-                                              tahapan,
-                                              prevTahapanSelesai,
-                                              prevTahapanAktualSelesai,
-                                            })
-                                          }
-                                          className="px-2 py-0.5 text-[10px] bg-red-600 text-white rounded-full hover:bg-red-700 active:scale-95 transition-all shadow-sm"
-                                        >
-                                          ACTUAL
-                                        </button>
+                                        {(() => {
+                                          // Cari tahapan tepat sebelumnya
+                                          const originalList =
+                                            pengadaanList.find(
+                                              (p) => p.id === pengadaan.id,
+                                            )?.tahapanList ??
+                                            pengadaan.tahapanList;
+                                          const prevTahapanItem =
+                                            tahapanIdx === 0
+                                              ? null
+                                              : (originalList
+                                                  .filter(
+                                                    (t) =>
+                                                      t.noUrut < tahapan.noUrut,
+                                                  )
+                                                  .sort(
+                                                    (a, b) =>
+                                                      b.noUrut - a.noUrut,
+                                                  )[0] ?? null);
+
+                                          const isPrevLocked =
+                                            tahapanIdx === 0 ||
+                                            !prevTahapanItem ||
+                                            prevTahapanItem.progres.status ===
+                                              "selesai" ||
+                                            !!prevTahapanItem.isLocked ||
+                                            lockedTahapan.has(
+                                              prevTahapanItem.idTahapan,
+                                            );
+
+                                          return (
+                                            <button
+                                              onClick={() =>
+                                                isPrevLocked
+                                                  ? setModal({
+                                                      type: "update",
+                                                      tahapan,
+                                                      prevTahapanSelesai,
+                                                      prevTahapanAktualSelesai,
+                                                    })
+                                                  : toast.error(
+                                                      `Selesaikan & kunci "${prevTahapanItem?.namaTahapan}" terlebih dahulu`,
+                                                    )
+                                              }
+                                              disabled={!isPrevLocked}
+                                              title={
+                                                !isPrevLocked
+                                                  ? `Tahapan "${prevTahapanItem?.namaTahapan}" belum dikunci`
+                                                  : undefined
+                                              }
+                                              className={`px-2 py-0.5 text-[10px] rounded-full transition-all shadow-sm
+                                              ${
+                                                isPrevLocked
+                                                  ? "bg-red-600 text-white hover:bg-red-700 active:scale-95"
+                                                  : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                                              }`}
+                                            >
+                                              ACTUAL
+                                            </button>
+                                          );
+                                        })()}
                                       </>
                                     )}
                                     {isLocked && (
