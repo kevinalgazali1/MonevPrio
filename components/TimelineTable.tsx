@@ -48,13 +48,11 @@ interface Progres {
   lastUpdateAktual?: string | null;
 }
 
-// ── Forecast per-tahapan dari BE ──────────────────────────────────────────────
 interface TahapanForecast {
   forecastTanggalMulai: string | null;
   forecastTanggalSelesai: string | null;
 }
 
-// ── Forecast keseluruhan per-pengadaan dari BE ────────────────────────────────
 interface ForecastKeseluruhan {
   planTanggalSelesaiKeseluruhan: string | null;
   forecastTanggalSelesaiKeseluruhan: string | null;
@@ -103,17 +101,14 @@ function getTahapanBarStatus(tahapan: Tahapan): "aman" | "terlambat" | "none" {
   const { aktualTanggalMulai, aktualTanggalSelesai, planningTanggalSelesai } =
     tahapan.progres;
 
-  // Tanpa aktual → belum bisa dinilai aman/terlambat
   if (!aktualTanggalMulai) return "none";
 
-  // Ada aktual mulai: sudah selesai → bandingkan aktual vs plan
   if (aktualTanggalSelesai && planningTanggalSelesai) {
     return parseLocalDate(aktualTanggalSelesai) <=
       parseLocalDate(planningTanggalSelesai)
       ? "aman"
       : "terlambat";
   }
-  // Sedang berjalan → bandingkan hari ini vs plan selesai
   if (planningTanggalSelesai) {
     return new Date() > parseLocalDate(planningTanggalSelesai)
       ? "terlambat"
@@ -137,13 +132,11 @@ function buildTimelineColumns(pengadaanList: Pengadaan[]) {
         allDates.push(parseLocalDate(t.progres.aktualTanggalMulai));
       if (t.progres.aktualTanggalSelesai)
         allDates.push(parseLocalDate(t.progres.aktualTanggalSelesai));
-      // Sertakan tanggal forecast dari BE ke range kolom
       if (t.forecast?.forecastTanggalMulai)
         allDates.push(parseLocalDate(t.forecast.forecastTanggalMulai));
       if (t.forecast?.forecastTanggalSelesai)
         allDates.push(parseLocalDate(t.forecast.forecastTanggalSelesai));
     });
-    // Sertakan forecastKeseluruhan ke range kolom
     if (p.forecastKeseluruhan?.forecastTanggalSelesaiKeseluruhan)
       allDates.push(
         parseLocalDate(p.forecastKeseluruhan.forecastTanggalSelesaiKeseluruhan),
@@ -298,7 +291,7 @@ function normalizeKeterangan(raw: any): KeteranganItem[] {
   return [];
 }
 
-// ─── Hitung variance hari antara plan selesai dan forecast selesai dari BE ─────
+// ─── Hitung variance hari ──────────────────────────────────────────────────────
 
 function getForecastVarianceDays(tahapan: Tahapan): number {
   const planSelesai = tahapan.progres.planningTanggalSelesai;
@@ -1086,16 +1079,9 @@ export default function TimelineTable({
   const totalMonths = monthGroups.length;
   const colMinWidth = totalMonths >= 10 ? 28 : totalMonths >= 6 ? 32 : 36;
 
-  const headerScrollRef = useRef<HTMLDivElement>(null);
-  const bodyScrollRef = useRef<HTMLDivElement>(null);
-  function onHeaderScroll() {
-    if (bodyScrollRef.current && headerScrollRef.current)
-      bodyScrollRef.current.scrollLeft = headerScrollRef.current.scrollLeft;
-  }
-  function onBodyScroll() {
-    if (headerScrollRef.current && bodyScrollRef.current)
-      headerScrollRef.current.scrollLeft = bodyScrollRef.current.scrollLeft;
-  }
+  // ── Lebar kolom kiri & kanan (fixed) ──────────────────────────────────────
+  const LEFT_COL_W = 200;
+  const RIGHT_COL_W = 250;
 
   return (
     <>
@@ -1136,19 +1122,41 @@ export default function TimelineTable({
           </div>
         ) : (
           <div className="rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-            {/* Sticky Header */}
+            {/*
+              ── SINGLE TABLE dengan sticky thead ──────────────────────────────
+              Menggunakan satu tabel tunggal agar lebar kolom timeline
+              di header dan body SELALU identik → garis batas minggu lurus.
+            */}
             <div
-              ref={headerScrollRef}
-              onScroll={onHeaderScroll}
-              className="overflow-x-auto"
-              style={{ scrollbarWidth: "none" }}
+              className="overflow-x-auto overflow-y-auto"
+              style={{ maxHeight: "60vh" }}
             >
-              <table className="min-w-full text-sm border-collapse">
-                <thead className="bg-gray-100">
+              <table
+                className="text-sm border-collapse"
+                style={{
+                  tableLayout: "fixed",
+                  width: "max-content",
+                  minWidth: "100%",
+                }}
+              >
+                {/* colgroup: mendefinisikan lebar kolom secara eksplisit */}
+                <colgroup>
+                  <col style={{ width: LEFT_COL_W, minWidth: LEFT_COL_W }} />
+                  {columns.map((_, i) => (
+                    <col
+                      key={i}
+                      style={{ width: colMinWidth, minWidth: colMinWidth }}
+                    />
+                  ))}
+                  <col style={{ width: RIGHT_COL_W, minWidth: RIGHT_COL_W }} />
+                </colgroup>
+
+                {/* ── STICKY HEADER ── */}
+                <thead className="sticky top-0 z-20">
                   <tr>
                     <th
                       rowSpan={2}
-                      className="border border-gray-200 px-4 py-3 bg-gray-100 text-center font-semibold text-gray-700 w-52 min-w-[200px]"
+                      className="border border-gray-200 px-4 py-3 bg-gray-100 text-center font-semibold text-gray-700 align-middle"
                     >
                       Tahapan Proses
                     </th>
@@ -1163,7 +1171,7 @@ export default function TimelineTable({
                     ))}
                     <th
                       rowSpan={2}
-                      className="border border-gray-200 px-4 py-3 bg-gray-100 text-center font-semibold text-gray-700 w-64 min-w-[250px]"
+                      className="border border-gray-200 px-4 py-3 bg-gray-100 text-center font-semibold text-gray-700 align-middle"
                     >
                       Keterangan
                     </th>
@@ -1173,55 +1181,16 @@ export default function TimelineTable({
                       <th
                         key={i}
                         className="border border-gray-200 py-1 px-1 text-xs font-medium text-gray-500 bg-gray-50 text-center"
-                        style={{ width: colMinWidth, minWidth: colMinWidth }}
                       >
                         {col.label}
                       </th>
                     ))}
                   </tr>
                 </thead>
-              </table>
-            </div>
 
-            {/* Scrollable Body */}
-            <div
-              ref={bodyScrollRef}
-              onScroll={onBodyScroll}
-              className="overflow-x-auto overflow-y-auto"
-              style={{ maxHeight: "60vh" }}
-            >
-              <table className="min-w-full text-sm border-collapse">
-                <thead className="invisible" aria-hidden="true">
-                  <tr>
-                    <th
-                      className="w-52 min-w-[200px] border border-gray-200 px-4 py-3"
-                      rowSpan={2}
-                    />
-                    {monthGroups.map((g) => (
-                      <th
-                        key={g.key}
-                        colSpan={g.count}
-                        className="border border-gray-200 py-2"
-                      />
-                    ))}
-                    <th
-                      className="w-64 min-w-[250px] border border-gray-200 px-4 py-3"
-                      rowSpan={2}
-                    />
-                  </tr>
-                  <tr>
-                    {columns.map((_, i) => (
-                      <th
-                        key={i}
-                        className="border border-gray-200 py-1 px-1"
-                        style={{ width: colMinWidth, minWidth: colMinWidth }}
-                      />
-                    ))}
-                  </tr>
-                </thead>
+                {/* ── BODY ── */}
                 <tbody>
                   {filteredPengadaanList.map((pengadaan) => {
-                    // ── Forecast keseluruhan dari BE ───────────────────────────
                     const fk = pengadaan.forecastKeseluruhan;
                     const planEndKeseluruhan = fk?.planTanggalSelesaiKeseluruhan
                       ? parseLocalDate(
@@ -1247,7 +1216,6 @@ export default function TimelineTable({
                       forecastEndKeseluruhan !== null &&
                       overallForecastCol >= 0;
 
-                    // Hitung keterlambatan hari untuk baris forecast program
                     const forecastDelayDays =
                       planEndKeseluruhan !== null &&
                       forecastEndKeseluruhan !== null
@@ -1273,7 +1241,6 @@ export default function TimelineTable({
                           !!tahapan.isLocked ||
                           lockedTahapan.has(tahapan.idTahapan);
 
-                        // ── Kolom plan & aktual ──────────────────────────────
                         const planStart = getColIndex(
                           columns,
                           tahapan.progres.planningTanggalMulai,
@@ -1316,7 +1283,6 @@ export default function TimelineTable({
                             ? actualEnd - actualStart + 1
                             : 0;
 
-                        // ── Forecast dari BE ─────────────────────────────────
                         const fcMulai =
                           tahapan.forecast?.forecastTanggalMulai ?? null;
                         const fcSelesai =
@@ -1348,17 +1314,13 @@ export default function TimelineTable({
                           !isLocked &&
                           !isAktualTerlambat;
 
-                        // ─────────────────────────────────────────────────────
-
                         const isDelayed =
                           forecastEndMs !== null &&
                           planEndMs > -1 &&
                           forecastEndMs > planEndMs;
 
-                        // Variance hari forecast vs plan
                         const varianceDays = getForecastVarianceDays(tahapan);
 
-                        // ── Isi sel-sel timeline ─────────────────────────────
                         const cells = Array(columns.length)
                           .fill(null)
                           .map(() => ({
@@ -1426,7 +1388,6 @@ export default function TimelineTable({
                           );
                         })();
 
-                        // ── Keterangan ───────────────────────────────────────
                         const keteranganList = normalizeKeterangan(
                           tahapan.progres.keterangan,
                         );
@@ -1436,7 +1397,6 @@ export default function TimelineTable({
                             : null;
                         const hasMoreKeterangan = keteranganList.length > 1;
 
-                        // ── Tooltip titles ───────────────────────────────────
                         const planTitle =
                           tahapan.progres.planningTanggalMulai &&
                           tahapan.progres.planningTanggalSelesai
@@ -1503,7 +1463,6 @@ export default function TimelineTable({
                                         </span>
                                       </div>
                                     )}
-                                    {/* Tampilkan forecast selesai dari BE — hanya jika tidak terlambat berdasarkan aktual */}
                                     {fcSelesai &&
                                       !isLocked &&
                                       !isAktualTerlambat && (
@@ -1559,7 +1518,6 @@ export default function TimelineTable({
                                           PLAN
                                         </button>
                                         {(() => {
-                                          // Cari tahapan tepat sebelumnya
                                           const originalList =
                                             pengadaanList.find(
                                               (p) => p.id === pengadaan.id,
@@ -1608,8 +1566,7 @@ export default function TimelineTable({
                                                   ? `Tahapan "${prevTahapanItem?.namaTahapan}" belum dikunci`
                                                   : undefined
                                               }
-                                              className={`px-2 py-0.5 text-[10px] rounded-full transition-all shadow-sm
-                                              ${
+                                              className={`px-2 py-0.5 text-[10px] rounded-full transition-all shadow-sm ${
                                                 isPrevLocked
                                                   ? "bg-red-600 text-white hover:bg-red-700 active:scale-95"
                                                   : "bg-gray-200 text-gray-400 cursor-not-allowed"
@@ -1680,7 +1637,7 @@ export default function TimelineTable({
                             })}
 
                             {/* Keterangan cell */}
-                            <td className="border border-gray-200 px-3 py-2 text-xs bg-white align-top min-w-[250px]">
+                            <td className="border border-gray-200 px-3 py-2 text-xs bg-white align-top">
                               {latestKeterangan ? (
                                 <div className="space-y-1.5">
                                   <div className="flex gap-1.5 leading-snug">
@@ -1742,7 +1699,7 @@ export default function TimelineTable({
                         );
                       }),
 
-                      // ── Baris estimasi selesai program (dari forecastKeseluruhan BE) ──
+                      // ── Baris estimasi selesai program ────────────────────
                       ...(showProgramForecast
                         ? [
                             <tr
