@@ -231,7 +231,7 @@ export default function LoginPage() {
               </div>
 
               <h2 className="text-center text-2xl font-bold text-gray-800">
-                E-MONITOR
+                MONEVPRIO
               </h2>
               <p className="text-center text-gray-500 text-sm mb-8">
                 SULAWESI SELATAN
