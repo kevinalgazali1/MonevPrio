@@ -691,6 +691,10 @@ function UpdateModal({
     new Date(selesai) > new Date(formatDateForInput(planningSelesai))
   );
 
+  const hasAktualTersimpan =
+    !!tahapan.progres.aktualTanggalMulai &&
+    !!tahapan.progres.aktualTanggalSelesai;
+
   async function handleSave() {
     if (!mulai) {
       toast.error("Tanggal mulai aktual wajib diisi");
@@ -970,7 +974,18 @@ function UpdateModal({
         ) : (
           <button
             onClick={() => setConfirmLock(true)}
-            className="mt-4 w-full py-2 rounded-xl text-xs font-semibold text-orange-600 border border-orange-300 bg-orange-50 hover:bg-orange-100 flex items-center justify-center gap-1.5"
+            disabled={!hasAktualTersimpan}
+            title={
+              !hasAktualTersimpan
+                ? "Simpan data aktual terlebih dahulu sebelum mengunci"
+                : undefined
+            }
+            className={`mt-4 w-full py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors
+            ${
+              !hasAktualTersimpan
+                ? "text-gray-400 border border-gray-200 bg-gray-100 cursor-not-allowed"
+                : "text-orange-600 border border-orange-300 bg-orange-50 hover:bg-orange-100 cursor-pointer"
+            }`}
           >
             <Lock size={12} /> Tandai Selesai &amp; Kunci Tahapan
           </button>

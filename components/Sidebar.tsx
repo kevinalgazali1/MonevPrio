@@ -66,12 +66,20 @@ export default function Sidebar({
     setOpenDropdowns((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
+  const handleNavClick = (cb: () => void) => {
+    cb();
+    // Tutup sidebar di mobile/tablet setelah navigasi
+    if (window.innerWidth < 1024) {
+      setSidebarOpen(false);
+    }
+  };
+
   return (
     <>
-      {/* Overlay Mobile */}
+      {/* Overlay — muncul di mobile & tablet saat sidebar terbuka */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/40 lg:hidden z-40"
+          className="fixed inset-0 bg-black/40 z-40 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -88,7 +96,7 @@ export default function Sidebar({
         `}
       >
         {/* Scrollable Content */}
-        <div className="overflow-y-auto">
+        <div className="overflow-y-auto flex-1">
           {/* Logo */}
           <div className="p-6 pb-4">
             <div className="relative bg-[#CB0E0E] w-14 h-14 mx-auto rounded-xl rotate-6 flex items-center justify-center mb-4">
@@ -98,13 +106,15 @@ export default function Sidebar({
             <p className="text-xs text-gray-500 text-center">E-MONITORING</p>
           </div>
 
-          <nav className="px-4 space-y-1">
+          <nav className="px-4 space-y-1 pb-4">
             {/* Dashboard */}
             <button
-              onClick={() => {
-                onTabChange?.("semua");
-                router.back();
-              }}
+              onClick={() =>
+                handleNavClick(() => {
+                  onTabChange?.("semua");
+                  router.back();
+                })
+              }
               className={`flex items-center gap-2 w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
                 activeTab === "semua"
                   ? "bg-gray-200 text-gray-900 hover:bg-gray-300"
@@ -140,10 +150,7 @@ export default function Sidebar({
                       <span className="truncate font-semibold">
                         {pengadaan.jenisPengadaan}
                       </span>
-                      <span className="text-xs opacity-80">
-                        {pengadaan.title}
-                      </span>
-                      {/* Anggaran dalam format rupiah compact */}
+                      <span className="text-xs opacity-80">{pengadaan.title}</span>
                       <span
                         className={`text-xs font-bold mt-0.5 ${
                           activeTab === `pengadaan-${pengadaan.id}`
@@ -169,7 +176,9 @@ export default function Sidebar({
                       return (
                         <button
                           key={tahapan.idTahapan}
-                          onClick={() => onTabChange?.(tabKey)}
+                          onClick={() =>
+                            handleNavClick(() => onTabChange?.(tabKey))
+                          }
                           className={`flex items-center gap-2 w-full px-3 py-1.5 rounded-md text-xs transition-colors text-left ${
                             activeTab === tabKey
                               ? "bg-red-50 text-[#CB0E0E] font-semibold"
@@ -191,9 +200,9 @@ export default function Sidebar({
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t">
+        <div className="p-4 border-t shrink-0">
           <div className="flex flex-row items-center gap-2 bg-gray-100 p-3 rounded-lg text-sm">
-            <Building2 color="#CB0E0E" size={20} />
+            <Building2 color="#CB0E0E" size={20} className="shrink-0" />
             <div>
               <p className="text-[#CB0E0E] font-semibold text-xs">Instansi</p>
               <p className="text-gray-700 text-xs">{namaDinas ?? "—"}</p>

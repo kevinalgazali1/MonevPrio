@@ -115,10 +115,8 @@ export default function AdminArsipDigitalProgram() {
     } finally {
       setUploading(false);
 
-      // ✅ Reset state
       setUploadedFile(null);
 
-      // ✅ Reset input file DOM
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
@@ -181,20 +179,21 @@ export default function AdminArsipDigitalProgram() {
   /* ================= RENDER ================= */
 
   return (
-    <div className="min-h-screen bg-gray-200 flex items-center justify-center p-6">
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden border-t-16 border-[#CB0E0E]">
+    <div className="min-h-screen bg-gray-200 flex items-center justify-center p-4 sm:p-6">
+      <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-sm sm:max-w-lg md:max-w-2xl overflow-hidden border-t-8 sm:border-t-[16px] border-[#CB0E0E]">
+
         {/* ================= HEADER ================= */}
-        <div className="bg-white px-6 pt-6 pb-4 flex items-center justify-between border-b border-gray-100">
-          <div className="flex items-center gap-10">
-            <div className="bg-red-600 rounded-xl w-16 h-16 flex items-center justify-center shadow-md rotate-6">
-              <BookOpen className="w-10 h-10 text-white" strokeWidth={2} />
+        <div className="bg-white px-4 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4 flex items-center justify-between border-b border-gray-100">
+          <div className="flex items-center gap-3 sm:gap-6 md:gap-10">
+            <div className="bg-red-600 rounded-xl w-11 h-11 sm:w-14 sm:h-14 md:w-16 md:h-16 flex items-center justify-center shadow-md rotate-6 shrink-0">
+              <BookOpen className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 text-white" strokeWidth={2} />
             </div>
 
             <div>
-              <h1 className="text-2xl font-extrabold italic tracking-wide text-black">
+              <h1 className="text-base sm:text-xl md:text-2xl font-extrabold italic tracking-wide text-black leading-tight">
                 Arsip Digital Program
               </h1>
-              <p className="text-sm text-black font-semibold capitalize">
+              <p className="text-xs sm:text-sm text-black font-semibold capitalize mt-0.5 line-clamp-1">
                 {subSlug?.replace(/-/g, " ")}
               </p>
             </div>
@@ -202,113 +201,105 @@ export default function AdminArsipDigitalProgram() {
 
           <button
             onClick={() => router.back()}
-            className="w-8 h-8 rounded-full border-2 border-black flex items-center justify-center cursor-pointer text-black hover:bg-gray-100"
+            className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 border-black flex items-center justify-center cursor-pointer text-black hover:bg-gray-100 shrink-0 ml-2"
           >
-            <X className="w-4 h-4" strokeWidth={4} />
+            <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" strokeWidth={4} />
           </button>
         </div>
 
         {/* ================= BODY ================= */}
-        <div className="p-6 grid grid-cols-2 gap-6 text-black max-h-75 h-full items-start">
-          {/* ================= LEFT: DOCUMENT LIST ================= */}
-          <div className="flex flex-col overflow-hidden max-h-65">
-            <h2 className="text-sm font-bold mb-1">Daftar Dokumen</h2>
+        <div className="p-4 sm:p-6 text-black">
 
-            {loadingDokumen ? (
-              <p className="text-xs text-gray-400">Memuat data...</p>
-            ) : documents.length === 0 ? (
-              <p className="text-xs text-gray-400">
-                Belum ada dokumen diupload
-              </p>
-            ) : (
-              <div className="flex flex-col flex-1 overflow-y-auto pr-2 gap-2">
-                {documents.map((doc) => (
-                  <div
-                    key={doc.id}
-                    className="flex items-center gap-3 bg-gray-50 rounded-xl px-4 py-3 border border-gray-100 hover:border-red-200 hover:bg-red-50 transition-all"
-                  >
-                    <div className="bg-red-100 rounded-lg w-9 h-9 flex items-center justify-center shrink-0">
-                      <FileText className="w-5 h-5 text-red-600" />
-                    </div>
+          {/* ================= DOCUMENT LIST ================= */}
+          <h2 className="text-sm font-bold mb-3">Daftar Dokumen</h2>
 
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-bold truncate">
-                        {doc.namaFile}
-                      </p>
-                      <p className="text-xs text-gray-400">
-                        {new Date(doc.createdAt).toLocaleDateString()}
-                      </p>
-                    </div>
-
-                    <div className="flex gap-2">
-                      <a
-                        href={`https://sulsel.cloud${doc.fileUrl}`}
-                        target="_blank"
-                        className="text-gray-800 hover:text-blue-500"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </a>
-
-                      <button
-                        onClick={() =>
-                          handleDownload(doc.fileUrl, doc.namaFile)
-                        }
-                        className="text-gray-800 hover:text-green-500"
-                      >
-                        <Download className="w-4 h-4" />
-                      </button>
-                    </div>
+          {loadingDokumen ? (
+            <p className="text-xs text-gray-400">Memuat data...</p>
+          ) : documents.length === 0 ? (
+            <p className="text-xs text-gray-400">Belum ada dokumen diupload</p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[40vh] overflow-y-auto pr-1 mb-4 sm:mb-6">
+              {documents.map((doc) => (
+                <div
+                  key={doc.id}
+                  className="flex items-center gap-3 bg-gray-50 rounded-xl px-3 sm:px-4 py-3 border border-gray-100 hover:border-red-200 hover:bg-red-50 transition-all"
+                >
+                  <div className="bg-red-100 rounded-lg w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center shrink-0">
+                    <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
 
-          {/* ================= RIGHT: UPLOAD AREA ================= */}
-          <div className="flex flex-col items-center justify-center self-center w-full">
-            <div
-              onDragOver={(e) => {
-                e.preventDefault();
-                setDragOver(true);
-              }}
-              onDragLeave={() => setDragOver(false)}
-              onDrop={handleDrop}
-              onClick={() => fileInputRef.current?.click()}
-              className={`w-full rounded-2xl border-2 border-dashed flex flex-col items-center justify-center p-8 cursor-pointer transition-all
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold truncate">{doc.namaFile}</p>
+                    <p className="text-[10px] sm:text-xs text-gray-400">
+                      {new Date(doc.createdAt).toLocaleDateString("id-ID")}
+                    </p>
+                  </div>
+
+                  <div className="flex gap-2 shrink-0">
+                    <a
+                      href={`https://sulsel.cloud${doc.fileUrl}`}
+                      target="_blank"
+                      className="text-gray-600 hover:text-blue-500 transition-colors"
+                      title="Lihat dokumen"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </a>
+                    <button
+                      onClick={() => handleDownload(doc.fileUrl, doc.namaFile)}
+                      className="text-gray-600 hover:text-green-500 transition-colors"
+                      title="Unduh dokumen"
+                    >
+                      <Download className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* ================= UPLOAD AREA ================= */}
+          <div
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragOver(true);
+            }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={handleDrop}
+            onClick={() => fileInputRef.current?.click()}
+            className={`w-full rounded-2xl border-2 border-dashed flex flex-col items-center justify-center p-6 sm:p-8 cursor-pointer transition-all
               ${
                 dragOver
                   ? "border-red-500 bg-red-50"
                   : "border-gray-300 bg-gray-50 hover:border-red-400 hover:bg-red-50"
               }`}
-              style={{ minHeight: 160 }}
-            >
-              <div className="bg-gray-200 rounded-full w-12 h-12 flex items-center justify-center mb-3">
-                <Upload className="w-6 h-6 text-gray-500" />
-              </div>
-
-              <p className="text-sm font-bold uppercase">Upload File</p>
-
-              <p className="text-xs text-gray-400 text-center mt-1">
-                {uploading
-                  ? "Mengupload..."
-                  : uploadedFile
-                    ? uploadedFile.name
-                    : "Pilih PDF atau Foto Dokumen"}
-              </p>
-
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                className="hidden"
-                onChange={handleFileChange}
-              />
+            style={{ minHeight: 130 }}
+          >
+            <div className="bg-gray-200 rounded-full w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center mb-2 sm:mb-3">
+              <Upload className="w-5 h-5 sm:w-6 sm:h-6 text-gray-500" />
             </div>
 
-            <p className="text-xs text-gray-400 mt-3 text-center">
-              Mendukung PDF, JPG, PNG, Doc
+            <p className="text-sm font-bold uppercase">Upload File</p>
+
+            <p className="text-xs text-gray-400 text-center mt-1">
+              {uploading
+                ? "Mengupload..."
+                : uploadedFile
+                  ? uploadedFile.name
+                  : "Pilih PDF atau Foto Dokumen"}
             </p>
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+              className="hidden"
+              onChange={handleFileChange}
+            />
           </div>
+
+          <p className="text-xs text-gray-400 mt-2 sm:mt-3 text-center">
+            Mendukung PDF, JPG, PNG, Doc
+          </p>
         </div>
       </div>
     </div>

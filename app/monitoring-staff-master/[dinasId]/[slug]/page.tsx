@@ -21,6 +21,8 @@ import {
   Check,
   BookOpen,
   X,
+  Menu,
+  Clock,
 } from "lucide-react";
 
 interface ProgramItem {
@@ -30,6 +32,8 @@ interface ProgramItem {
   anggaran: string;
   createdAt: string;
   pengadaanList: string[];
+  isSelesai: boolean;
+  isTerlambat: boolean;
 }
 
 interface CreateProgramResponse {
@@ -53,6 +57,8 @@ export default function AdminProgramPage() {
   const [metode, setMetode] = useState<SelectedMetode[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
   const params = useParams();
   const router = useRouter();
   const dinasId = Number(params?.dinasId);
@@ -80,6 +86,7 @@ export default function AdminProgramPage() {
       );
       const json = await res.json();
       if (json?.data) setProgramList(json.data);
+      console.log(json);
     } catch (err) {
       console.error("Error fetch program:", err);
     } finally {
@@ -99,7 +106,7 @@ export default function AdminProgramPage() {
     fetchMetode();
   }, []);
 
-  // ---- Handlers untuk MultiSelectMetode ----
+  /* ── MultiSelectMetode handlers ── */
 
   const handleMetodeChange = (id: number) => {
     setMetode((prev) => [
@@ -122,7 +129,7 @@ export default function AdminProgramPage() {
     );
   };
 
-  // ---- Submit ----
+  /* ── Submit ── */
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -131,17 +138,14 @@ export default function AdminProgramPage() {
       toast.error("Nama strong point wajib diisi");
       return;
     }
-
     if (!tanggalMulai) {
       toast.error("Tanggal mulai wajib diisi");
       return;
     }
-
     if (metode.length === 0) {
       toast.error("Pilih minimal satu metode pengadaan");
       return;
     }
-
     const invalidAnggaran = metode.some(
       (m) => !m.anggaran || Number(m.anggaran.replace(/\./g, "")) <= 0,
     );
@@ -211,73 +215,93 @@ export default function AdminProgramPage() {
   );
 
   return (
-    <section className="min-h-screen text-black">
-      <SidebarAdmin />
-      <div className="ml-64 bg-[#ececec] min-h-screen py-10 px-10">
-        {/* HEADER */}
-        <div className="flex items-start gap-6 mb-6">
-          <div>
-            <p className="text-xl text-[#CB0E0E] uppercase italic tracking-widest">
-              DASHBOARD
-            </p>
-            <h1 className="text-4xl font-extrabold italic tracking-wide">
-              {formatNamaDinas(slug)}
-            </h1>
-          </div>
-        </div>
+    <section className="min-h-screen bg-[#2d0000] text-black">
+      {/* Sidebar */}
+      <SidebarAdmin sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
-        <hr className="border-gray-300 mb-6" />
-
-        <div className="flex flex-row justify-between">
-          <div className="flex flex-row gap-4">
+      {/* Main Content */}
+      <div className="lg:ml-64 bg-[#ececec] min-h-screen py-6 px-4 sm:py-8 sm:px-8 lg:py-10 lg:px-16 xl:px-32">
+        {/* ================= HEADER ================= */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-6">
+          <div className="flex items-center gap-3 sm:gap-6">
+            {/* Burger — mobile & tablet only */}
             <button
-              onClick={() => router.back()}
-              className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg shadow hover:bg-gray-100 transition mb-10 cursor-pointer"
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="lg:hidden flex items-center justify-center w-10 h-10 rounded-lg bg-white shadow text-[#CB0E0E] hover:bg-gray-50 transition shrink-0"
+              aria-label="Toggle sidebar"
             >
-              <ArrowLeft size={16} />
-              Kembali
+              <Menu size={22} />
             </button>
 
-            <div className="relative w-64">
-              <Search
-                size={16}
-                color="grey"
-                className="absolute left-3 top-3 text-gray-400"
-              />
-              <input
-                type="text"
-                placeholder="Cari program..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 rounded-lg border placeholder:text-gray-600 border-gray-300 bg-white focus:ring-2 focus:ring-red-500 outline-none"
-              />
+            <div className="bg-[#CB0E0E] w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20 rounded-2xl rotate-6 flex items-center justify-center text-white text-2xl sm:text-3xl shadow-lg shrink-0">
+              <BookOpen />
+            </div>
+
+            <div>
+              <p className="text-xs text-[#CB0E0E] uppercase tracking-widest">
+                {formatNamaDinas(slug)}
+              </p>
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold italic tracking-wide">
+                DASHBOARD
+              </h1>
             </div>
           </div>
+        </div>
 
-          <div className="flex justify-end gap-4 mb-8">
-            <button
-              onClick={() => setOpen(true)}
-              className="flex items-center gap-2 bg-[#CB0E0E] hover:bg-red-800 text-white px-4 py-2 cursor-pointer rounded-lg shadow transition"
-            >
-              <Plus size={16} />
-              Tambah
-            </button>
+        {/* ================= SEARCH + DIVIDER ================= */}
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
+          <hr className="hidden sm:block flex-1 border-gray-300" />
+          <div className="relative w-full sm:w-64 sm:ml-6">
+            <Search
+              size={16}
+              color="grey"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            />
+            <input
+              type="text"
+              placeholder="Cari program..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 rounded-lg border placeholder:text-gray-500 border-gray-300 bg-white focus:ring-2 focus:ring-red-500 outline-none text-black text-sm"
+            />
           </div>
         </div>
 
-        {/* PROGRAM CARDS */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-6 text-black items-stretch">
-          {loading && <p>Loading...</p>}
+        {/* Divider mobile */}
+        <hr className="sm:hidden mb-4 border-gray-300" />
 
-          {!loading && filteredProgram.length === 0 && (
-            <p className="text-gray-500 col-span-full text-center">
-              Program tidak ditemukan
-            </p>
-          )}
+        {/* ================= ACTION ROW ================= */}
+        <div className="flex items-center justify-between mb-6 sm:mb-10 gap-3">
+          <button
+            onClick={() => router.back()}
+            className="flex items-center gap-2 bg-white px-3 py-2 sm:px-4 rounded-lg shadow hover:bg-gray-100 transition cursor-pointer text-sm"
+          >
+            <ArrowLeft size={15} />
+            Kembali
+          </button>
 
-          {!loading &&
-            filteredProgram.length > 0 &&
-            filteredProgram.map((item) => {
+          <button
+            onClick={() => setOpen(true)}
+            className="flex items-center gap-2 bg-[#CB0E0E] hover:bg-red-800 text-white px-3 py-2 sm:px-4 cursor-pointer rounded-lg shadow transition text-sm"
+          >
+            <Plus size={16} />
+            <span className="hidden xs:inline">Tambah</span>
+            <span className="xs:hidden">Tambah</span>
+          </button>
+        </div>
+
+        {/* ================= PROGRAM CARDS ================= */}
+        {loading && <p className="text-gray-500 text-sm">Memuat data...</p>}
+
+        {!loading && filteredProgram.length === 0 && (
+          <p className="text-gray-500 col-span-full text-center text-sm">
+            Program tidak ditemukan
+          </p>
+        )}
+
+        {!loading && filteredProgram.length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-4 lg:gap-6 text-black items-stretch">
+            {filteredProgram.map((item) => {
               const subSlug = slugify(item.namaProgram);
               return (
                 <Link
@@ -285,57 +309,65 @@ export default function AdminProgramPage() {
                   href={`/monitoring-staff-master/${dinasId}/${slug}/${subSlug}`}
                   className="block"
                 >
-                  <div
-                    className="relative bg-white rounded-3xl shadow-lg p-4 
-                    hover:shadow-xl transition border-t-16 border-[#CB0E0E] 
-                    flex flex-col cursor-pointer hover:scale-[1.02] duration-200
-                    h-90"
-                  >
-                    <div>
-                      <div className="relative flex justify-between items-center mt-10 mb-6">
-                        <div className="bg-[#CB0E0E] w-14 h-14 rounded-2xl flex items-center justify-center text-white text-2xl shadow">
-                          <BookOpen />
+                  <div className="relative bg-white rounded-3xl shadow-lg p-4 lg:p-5 hover:shadow-xl transition border-t-[12px] border-[#CB0E0E] flex flex-col cursor-pointer hover:scale-[1.02] duration-200 h-full min-h-[220px] sm:min-h-[240px]">
+                    {/* Atas: icon + badge status */}
+                    <div className="flex justify-between items-center mt-4 mb-4">
+                      <div className="bg-[#CB0E0E] w-11 h-11 lg:w-12 lg:h-12 rounded-2xl flex items-center justify-center text-white shadow">
+                        <BookOpen size={20} />
+                      </div>
+                      {item.isSelesai ? (
+                        <div className="flex items-center gap-1.5 bg-green-100 text-green-700 px-2.5 py-1 rounded-full text-[10px] lg:text-xs shadow-sm">
+                          <Check size={12} />
+                          Selesai
                         </div>
-                        <div className="flex items-center gap-2 bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs shadow-md shadow-black/20">
-                          <Check size={14} />
+                      ) : (
+                        <div className="flex items-center gap-1.5 bg-blue-100 text-blue-600 px-2.5 py-1 rounded-full text-[10px] lg:text-xs shadow-sm">
+                          <Clock size={12} />
                           Aktif
                         </div>
-                      </div>
-                      <h2 className="text-xl font-bold leading-snug mb-2 line-clamp-3">
+                      )}
+                    </div>
+
+                    {/* Konten */}
+                    <div className="flex-1">
+                      <h2 className="text-sm lg:text-base font-bold leading-snug mb-2 line-clamp-3">
                         {item.namaProgram}
                       </h2>
-                      <p className="text-xs text-gray-500 mb-4 line-clamp-2">
+                      <p className="text-[10px] lg:text-xs text-gray-500 line-clamp-2">
                         METODE : {item.pengadaanList.join(", ")}
                       </p>
                     </div>
-                    <div className="flex justify-between items-center mt-auto">
-                      <p className="text-[#CB0E0E] text-xl font-bold">
+
+                    {/* Footer: anggaran + arrow */}
+                    <div className="flex justify-between items-center mt-4">
+                      <p className="text-[#CB0E0E] text-sm lg:text-base font-bold">
                         {formatRupiahCompact(Number(item.anggaran))}
                       </p>
-                      <div className="w-8 h-8 rounded-full border border-gray-400 flex items-center justify-center">
-                        <ArrowRight size={14} />
+                      <div className="w-6 h-6 lg:w-7 lg:h-7 rounded-full border border-gray-400 flex items-center justify-center shrink-0">
+                        <ArrowRight size={12} />
                       </div>
                     </div>
                   </div>
                 </Link>
               );
             })}
-        </div>
+          </div>
+        )}
       </div>
 
-      {/* MODAL */}
+      {/* ================= MODAL ================= */}
       {open && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm py-6"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm py-6 px-4"
           onClick={() => setOpen(false)}
         >
           <div
-            className="relative w-full max-w-md bg-[#f2f2f2] rounded-3xl shadow-2xl p-8 text-black border-t-16 border-[#CB0E0E] max-h-[90vh] overflow-y-auto"
+            className="relative w-full max-w-md bg-[#f2f2f2] rounded-3xl shadow-2xl p-6 sm:p-8 text-black border-t-[16px] border-[#CB0E0E] max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
             style={{ animation: "modalIn 0.2s ease" }}
           >
             {/* Header */}
-            <div className="relative mt-8 flex justify-between items-start">
+            <div className="relative mt-4 sm:mt-8 flex justify-between items-start">
               <div>
                 <p className="text-sm font-semibold italic">REGISTRASI BARU</p>
                 <p className="text-xs text-gray-600">{formatNamaDinas(slug)}</p>
@@ -348,11 +380,10 @@ export default function AdminProgramPage() {
               </button>
             </div>
 
-            <hr className="my-6 border-gray-300" />
+            <hr className="my-4 sm:my-6 border-gray-300" />
 
             {/* Form */}
             <form className="space-y-5" onSubmit={handleSubmit}>
-              {/* Nama Program */}
               <div>
                 <label className="text-sm text-gray-600">
                   Nama Strong Point
@@ -365,7 +396,6 @@ export default function AdminProgramPage() {
                 />
               </div>
 
-              {/* Tanggal Mulai */}
               <div>
                 <label className="text-sm text-gray-600">Tanggal Mulai</label>
                 <input
@@ -376,7 +406,6 @@ export default function AdminProgramPage() {
                 />
               </div>
 
-              {/* Metode Pengadaan (anggaran sudah ada di dalam) */}
               <div>
                 <label className="text-sm text-gray-600">
                   Metode Pengadaan
@@ -390,19 +419,18 @@ export default function AdminProgramPage() {
                 />
               </div>
 
-              {/* Buttons */}
-              <div className="flex justify-between pt-6">
+              <div className="flex justify-between pt-4 sm:pt-6">
                 <button
                   type="button"
                   onClick={() => setOpen(false)}
-                  className="bg-gray-300 text-gray-600 hover:bg-gray-400 px-8 py-2 rounded-lg"
+                  className="bg-gray-300 text-gray-600 hover:bg-gray-400 px-6 sm:px-8 py-2 rounded-lg text-sm"
                 >
                   Batalkan
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className={`flex items-center gap-2 px-18 py-2 rounded-lg shadow text-white ${
+                  className={`flex items-center gap-2 px-6 sm:px-10 py-2 rounded-lg shadow text-white text-sm ${
                     submitting
                       ? "bg-red-400 cursor-not-allowed"
                       : "bg-[#CB0E0E] hover:bg-red-700"

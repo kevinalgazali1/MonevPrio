@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Building2, Users, Plus, Pencil } from "lucide-react";
+import { Building2, Users, Plus, Pencil, Menu } from "lucide-react";
 import { getCookie } from "cookies-next";
 import SidebarAdmin from "@/components/SidebarAdmin";
 import toast from "react-hot-toast";
@@ -78,22 +78,21 @@ function TambahDinasModal({ onClose, onSuccess }: ModalProps) {
   return (
     <div
       onClick={onClose}
-      className="fixed inset-0 text-black bg-black/40 flex items-center justify-center z-50"
+      className="fixed inset-0 text-black bg-black/40 flex items-center justify-center z-50 px-4"
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="bg-white w-[500px] rounded-[30px] shadow-2xl overflow-hidden animate-fade-in border-t-16 border-red-700"
+        className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-fade-in border-t-[16px] border-red-700"
       >
-        <div className="p-8">
+        <div className="p-6 sm:p-8">
           <div className="flex justify-between mb-6">
             <div>
               <h2 className="font-bold italic text-lg">Instansi Baru</h2>
               <p className="text-sm text-gray-500">E-Monitoring</p>
             </div>
-            <button onClick={onClose}>✕</button>
+            <button onClick={onClose} className="text-gray-500 hover:text-black text-lg">✕</button>
           </div>
 
-          {/* LABEL */}
           <div className="mb-2">
             <label className="text-sm font-semibold">Nama Instansi</label>
           </div>
@@ -103,16 +102,16 @@ function TambahDinasModal({ onClose, onSuccess }: ModalProps) {
             placeholder="Masukkan nama instansi"
             value={namaDinas}
             onChange={(e) => setNamaDinas(e.target.value)}
-            className="w-full bg-gray-100 rounded-lg px-4 py-3"
+            className="w-full bg-gray-100 rounded-lg px-4 py-3 outline-none focus:ring-2 focus:ring-red-500"
           />
 
           {error && <p className="text-red-600 text-sm mt-2">{error}</p>}
 
-          <div className="flex justify-between mt-8 gap-4">
+          <div className="flex justify-between mt-8 gap-3">
             <button
               onClick={onClose}
               disabled={loading}
-              className="bg-gray-200 text-gray-600 px-6 py-2 rounded-lg"
+              className="bg-gray-200 text-gray-600 px-5 py-2 rounded-lg text-sm"
             >
               BATALKAN
             </button>
@@ -120,10 +119,8 @@ function TambahDinasModal({ onClose, onSuccess }: ModalProps) {
             <button
               onClick={handleSubmit}
               disabled={loading}
-              className={`px-6 py-2 w-full rounded-lg text-white ${
-                loading
-                  ? "bg-red-400 cursor-not-allowed"
-                  : "bg-red-600 hover:bg-red-700"
+              className={`px-6 py-2 flex-1 rounded-lg text-white text-sm ${
+                loading ? "bg-red-400 cursor-not-allowed" : "bg-red-600 hover:bg-red-700"
               }`}
             >
               {loading ? "Menyimpan..." : "SIMPAN DATA"}
@@ -156,21 +153,16 @@ function TambahUserModal({ onClose, onSuccess }: ModalProps) {
     const fetchDropdown = async () => {
       try {
         const token = getCookie("accessToken");
-
         const res = await fetch(
           `${process.env.NEXT_PUBLIC_BACKEND_API}/master/dinas/dropdown`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          },
+          { headers: { Authorization: `Bearer ${token}` } },
         );
-
         const data = await res.json();
         setDropdown(data.data || []);
       } catch (err) {
         console.error("Error fetch dropdown:", err);
       }
     };
-
     fetchDropdown();
   }, []);
 
@@ -194,18 +186,13 @@ function TambahUserModal({ onClose, onSuccess }: ModalProps) {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            ...form,
-            dinasId: Number(form.dinasId),
-          }),
+          body: JSON.stringify({ ...form, dinasId: Number(form.dinasId) }),
         },
       );
 
       const json = await res.json();
 
-      if (!res.ok) {
-        throw new Error(json?.msg || "Gagal membuat akun staff");
-      }
+      if (!res.ok) throw new Error(json?.msg || "Gagal membuat akun staff");
 
       toast.success(json?.msg || "User berhasil ditambahkan");
       onSuccess();
@@ -221,88 +208,76 @@ function TambahUserModal({ onClose, onSuccess }: ModalProps) {
   return (
     <div
       onClick={onClose}
-      className="fixed inset-0 text-black bg-black/40 flex items-center justify-center z-50"
+      className="fixed inset-0 text-black bg-black/40 flex items-center justify-center z-50 px-4 py-6"
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="bg-white w-[550px] rounded-[30px] shadow-2xl overflow-hidden animate-fade-in border-t-16 border-red-700"
+        className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-fade-in border-t-[16px] border-red-700 max-h-[90vh] overflow-y-auto"
       >
-        <div className="p-8">
+        <div className="p-6 sm:p-8">
           <div className="flex justify-between mb-6">
             <div>
               <h2 className="font-bold italic text-lg">Pengguna Baru</h2>
               <p className="text-sm text-gray-500">E-Monitoring</p>
             </div>
-            <button onClick={onClose}>✕</button>
+            <button onClick={onClose} className="text-gray-500 hover:text-black text-lg">✕</button>
           </div>
 
-          {/* ================= NAMA ================= */}
           <div className="mb-4">
-            <label className="block text-sm font-semibold mb-1">
-              Nama Lengkap
-            </label>
+            <label className="block text-sm font-semibold mb-1">Nama Lengkap</label>
             <input
               placeholder="Masukkan Nama Lengkap"
               value={form.name}
-              className="w-full bg-gray-100 rounded-lg px-4 py-3"
+              className="w-full bg-gray-100 rounded-lg px-4 py-3 outline-none focus:ring-2 focus:ring-red-500"
               onChange={(e) => setForm({ ...form, name: e.target.value })}
             />
           </div>
 
-          {/* ================= USERNAME & PASSWORD ================= */}
-          <div className="grid grid-cols-2 gap-4 mb-4">
+          {/* Username & Password — stack di mobile, 2 kolom di sm+ */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
             <div>
-              <label className="block text-sm font-semibold mb-1">
-                Username
-              </label>
+              <label className="block text-sm font-semibold mb-1">Username</label>
               <input
                 placeholder="Masukkan Username"
                 value={form.username}
-                className="w-full bg-gray-100 rounded-lg px-4 py-3"
+                className="w-full bg-gray-100 rounded-lg px-4 py-3 outline-none focus:ring-2 focus:ring-red-500"
                 onChange={(e) => setForm({ ...form, username: e.target.value })}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-semibold mb-1">
-                Password
-              </label>
+              <label className="block text-sm font-semibold mb-1">Password</label>
               <input
                 placeholder="Masukkan Password"
                 type="password"
                 value={form.password}
-                className="w-full bg-gray-100 rounded-lg px-4 py-3"
+                className="w-full bg-gray-100 rounded-lg px-4 py-3 outline-none focus:ring-2 focus:ring-red-500"
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
               />
             </div>
           </div>
 
-          {/* ================= DINAS ================= */}
           <div>
-            <label className="block text-sm font-semibold mb-1">
-              Pilih Dinas
-            </label>
+            <label className="block text-sm font-semibold mb-1">Pilih Dinas</label>
             <select
               value={form.dinasId}
-              className="w-full bg-gray-100 rounded-lg px-4 py-3"
+              className="w-full bg-gray-100 rounded-lg px-4 py-3 outline-none focus:ring-2 focus:ring-red-500"
               onChange={(e) => setForm({ ...form, dinasId: e.target.value })}
             >
               <option value="">Pilih Dinas</option>
               {dropdown.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.namaDinas}
-                </option>
+                <option key={d.id} value={d.id}>{d.namaDinas}</option>
               ))}
             </select>
           </div>
 
           {error && <p className="text-red-600 text-sm mt-4">{error}</p>}
 
-          <div className="flex justify-between mt-8 gap-4">
+          <div className="flex justify-between mt-8 gap-3">
             <button
               onClick={onClose}
               disabled={loading}
-              className="bg-gray-200 text-gray-600 px-6 py-2 rounded-lg"
+              className="bg-gray-200 text-gray-600 px-5 py-2 rounded-lg text-sm"
             >
               BATALKAN
             </button>
@@ -310,10 +285,8 @@ function TambahUserModal({ onClose, onSuccess }: ModalProps) {
             <button
               onClick={handleSubmit}
               disabled={loading}
-              className={`px-6 py-2 w-full rounded-lg text-white ${
-                loading
-                  ? "bg-red-400 cursor-not-allowed"
-                  : "bg-red-600 hover:bg-red-700"
+              className={`px-6 py-2 flex-1 rounded-lg text-white text-sm ${
+                loading ? "bg-red-400 cursor-not-allowed" : "bg-red-600 hover:bg-red-700"
               }`}
             >
               {loading ? "Menyimpan..." : "SIMPAN DATA"}
@@ -350,33 +323,31 @@ function EditUserModal({ staff, onClose, onSuccess }: EditUserModalProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Fetch dropdown dinas
   useEffect(() => {
     const fetchDinasDropdown = async () => {
       try {
         const token = getCookie("accessToken");
-
         const res = await fetch(
           `${process.env.NEXT_PUBLIC_BACKEND_API}/master/dinas/dropdown`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          },
+          { headers: { Authorization: `Bearer ${token}` } },
         );
-
         const json = await res.json();
-
-        if (json?.data) {
-          setDropdown(json.data);
-        }
+        if (json?.data) setDropdown(json.data);
       } catch (err) {
         console.error("Error fetch dropdown:", err);
       }
     };
-
     fetchDinasDropdown();
   }, []);
+
+  useEffect(() => {
+    if (dropdown.length > 0 && staff?.dinas?.namaDinas) {
+      const matchedDinas = dropdown.find((d) => d.namaDinas === staff.dinas.namaDinas);
+      if (matchedDinas) {
+        setForm((prev) => ({ ...prev, dinasId: String(matchedDinas.id) }));
+      }
+    }
+  }, [dropdown, staff]);
 
   const handleSubmit = async () => {
     if (!form.username || !form.name || !form.dinasId) {
@@ -396,9 +367,7 @@ function EditUserModal({ staff, onClose, onSuccess }: EditUserModalProps) {
         dinasId: Number(form.dinasId),
       };
 
-      if (form.password.trim()) {
-        payload.password = form.password;
-      }
+      if (form.password.trim()) payload.password = form.password;
 
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_BACKEND_API}/master/staff/${staff.id}`,
@@ -414,9 +383,7 @@ function EditUserModal({ staff, onClose, onSuccess }: EditUserModalProps) {
 
       const json = await res.json();
 
-      if (!res.ok) {
-        throw new Error(json?.msg || "Gagal update");
-      }
+      if (!res.ok) throw new Error(json?.msg || "Gagal update");
 
       toast.success(json?.msg || "User berhasil diperbarui");
       onSuccess();
@@ -429,86 +396,65 @@ function EditUserModal({ staff, onClose, onSuccess }: EditUserModalProps) {
     }
   };
 
-  useEffect(() => {
-    if (dropdown.length > 0 && staff?.dinas?.namaDinas) {
-      const matchedDinas = dropdown.find(
-        (d) => d.namaDinas === staff.dinas.namaDinas,
-      );
-
-      if (matchedDinas) {
-        setForm((prev) => ({
-          ...prev,
-          dinasId: String(matchedDinas.id),
-        }));
-      }
-    }
-  }, [dropdown, staff]);
-
   return (
     <div
       onClick={onClose}
-      className="fixed inset-0 text-black bg-black/40 flex items-center justify-center z-50"
+      className="fixed inset-0 text-black bg-black/40 flex items-center justify-center z-50 px-4 py-6"
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="bg-white w-[550px] rounded-[30px] shadow-2xl overflow-hidden animate-fade-in border-t-16 border-red-700"
+        className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-fade-in border-t-[16px] border-red-700 max-h-[90vh] overflow-y-auto"
       >
-        <div className="p-8">
+        <div className="p-6 sm:p-8">
           <div className="flex justify-between mb-6">
             <div>
               <h2 className="font-bold italic text-lg">Edit Pengguna</h2>
               <p className="text-sm text-gray-500">E-Monitoring</p>
             </div>
-            <button onClick={onClose}>✕</button>
+            <button onClick={onClose} className="text-gray-500 hover:text-black text-lg">✕</button>
           </div>
 
-          {/* Nama */}
           <label className="text-sm font-semibold">Nama Lengkap</label>
           <input
             value={form.name}
-            className="w-full bg-gray-100 rounded-lg px-4 py-3 mb-4 mt-1"
+            className="w-full bg-gray-100 rounded-lg px-4 py-3 mb-4 mt-1 outline-none focus:ring-2 focus:ring-red-500"
             onChange={(e) => setForm({ ...form, name: e.target.value })}
           />
 
-          {/* Username */}
           <label className="text-sm font-semibold">Username</label>
           <input
             value={form.username}
-            className="w-full bg-gray-100 rounded-lg px-4 py-3 mb-4 mt-1"
+            className="w-full bg-gray-100 rounded-lg px-4 py-3 mb-4 mt-1 outline-none focus:ring-2 focus:ring-red-500"
             onChange={(e) => setForm({ ...form, username: e.target.value })}
           />
 
-          {/* Password */}
           <label className="text-sm font-semibold">Password (Opsional)</label>
           <input
             type="password"
             placeholder="Isi jika ingin mengganti password"
-            className="w-full bg-gray-100 rounded-lg px-4 py-3 mb-4 mt-1"
+            className="w-full bg-gray-100 rounded-lg px-4 py-3 mb-4 mt-1 outline-none focus:ring-2 focus:ring-red-500"
             onChange={(e) => setForm({ ...form, password: e.target.value })}
           />
 
-          {/* Dinas */}
           <label className="text-sm font-semibold">Pilih Dinas</label>
           <select
             value={form.dinasId}
-            className="w-full bg-gray-100 rounded-lg px-4 py-3 mt-1"
+            className="w-full bg-gray-100 rounded-lg px-4 py-3 mt-1 outline-none focus:ring-2 focus:ring-red-500"
             onChange={(e) => setForm({ ...form, dinasId: e.target.value })}
           >
             <option value="" disabled>Pilih Dinas</option>
             {dropdown.map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.namaDinas}
-              </option>
+              <option key={d.id} value={d.id}>{d.namaDinas}</option>
             ))}
           </select>
 
           {error && <p className="text-red-600 text-sm mt-3">{error}</p>}
 
-          <div className="flex justify-between mt-8 gap-4">
+          <div className="flex justify-between mt-8 gap-3">
             <button
               onClick={onClose}
               disabled={loading}
-              className="bg-gray-200 text-gray-600 px-6 py-2 rounded-lg"
+              className="bg-gray-200 text-gray-600 px-5 py-2 rounded-lg text-sm"
             >
               BATALKAN
             </button>
@@ -516,10 +462,8 @@ function EditUserModal({ staff, onClose, onSuccess }: EditUserModalProps) {
             <button
               onClick={handleSubmit}
               disabled={loading}
-              className={`px-6 py-2 w-full rounded-lg text-white ${
-                loading
-                  ? "bg-red-400 cursor-not-allowed"
-                  : "bg-red-600 hover:bg-red-700"
+              className={`px-6 py-2 flex-1 rounded-lg text-white text-sm ${
+                loading ? "bg-red-400 cursor-not-allowed" : "bg-red-600 hover:bg-red-700"
               }`}
             >
               {loading ? "Menyimpan..." : "UPDATE DATA"}
@@ -538,6 +482,7 @@ export default function AdminPanelPage() {
   const [loading, setLoading] = useState(true);
   const [showDinasModal, setShowDinasModal] = useState(false);
   const [showUserModal, setShowUserModal] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -570,107 +515,111 @@ export default function AdminPanelPage() {
     fetchData();
   }, []);
 
-  const refreshData = () => {
-    fetchData();
-  };
-
   return (
-    <div className="flex bg-gray-100 min-h-screen">
-      <SidebarAdmin />
+    <div className="min-h-screen bg-[#2d0000]">
+      <SidebarAdmin sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
-      <main className="ml-64 flex-1 p-10">
-        <h1 className="text-3xl font-extrabold italic mb-10 text-black">
-          ADMIN PANEL
-        </h1>
+      <main className="lg:ml-64 bg-gray-100 min-h-screen p-4 sm:p-6 lg:p-10">
 
-        <hr className="mb-8 border-gray-300" />
+        {/* ================= HEADER ================= */}
+        <div className="flex items-center gap-3 mb-6 sm:mb-10">
+          {/* Burger — mobile & tablet only */}
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="lg:hidden flex items-center justify-center w-10 h-10 rounded-lg bg-white shadow text-[#8A0707] hover:bg-gray-50 transition shrink-0"
+            aria-label="Toggle sidebar"
+          >
+            <Menu size={22} />
+          </button>
 
-        <div className="flex justify-center items-center min-h-[50vh]">
-          <div className="grid grid-cols-2 gap-10 w-full max-w-5xl">
-            {/* ================= INSTANSI ================= */}
-            <div className="bg-white rounded-lg shadow-md border border-red-300 p-6 w-md">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <Building2 className="w-6 h-6 text-black" />
-                  <h2 className="font-semibold text-lg text-black">Instansi</h2>
-                </div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold italic text-black">
+            ADMIN PANEL
+          </h1>
+        </div>
 
-                <button
-                  onClick={() => setShowDinasModal(true)}
-                  className="flex items-center gap-2 text-xs font-semibold bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-md transition"
-                >
-                  <Plus size={14} />
-                  Tambah Instansi
-                </button>
+        <hr className="mb-6 sm:mb-8 border-gray-300" />
+
+        {/* ================= PANEL GRID ================= */}
+        {/* 1 kolom di mobile, 2 kolom di md+ */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-10 w-full max-w-5xl mx-auto">
+
+          {/* ================= INSTANSI ================= */}
+          <div className="bg-white rounded-xl shadow-md border border-red-300 p-5 sm:p-6">
+            <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <Building2 className="w-5 h-5 sm:w-6 sm:h-6 text-black shrink-0" />
+                <h2 className="font-semibold text-base sm:text-lg text-black">Instansi</h2>
               </div>
 
-              <div className="space-y-3 max-h-80 overflow-y-auto">
-                {loading ? (
-                  <p className="text-sm text-gray-500">Loading...</p>
-                ) : dinasList.length === 0 ? (
-                  <p className="text-sm text-gray-500">
-                    Tidak ada data instansi
-                  </p>
-                ) : (
-                  dinasList.map((dinas) => (
-                    <div
-                      key={dinas.id}
-                      className="bg-gray-100 border border-red-200 rounded-md px-4 py-2 text-sm text-black"
-                    >
-                      {dinas.namaDinas}
-                    </div>
-                  ))
-                )}
-              </div>
+              <button
+                onClick={() => setShowDinasModal(true)}
+                className="flex items-center gap-1.5 text-xs font-semibold bg-red-600 hover:bg-red-700 text-white px-2.5 sm:px-3 py-2 rounded-md transition whitespace-nowrap"
+              >
+                <Plus size={13} />
+                Tambah Instansi
+              </button>
             </div>
 
-            {/* ================= PENGGUNA ================= */}
-            <div className="bg-white rounded-lg shadow-md border border-red-300 p-6 w-md">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <Users className="w-6 h-6 text-black" />
-                  <h2 className="font-semibold text-lg text-black">Pengguna</h2>
-                </div>
+            <div className="space-y-2 sm:space-y-3 max-h-72 sm:max-h-80 overflow-y-auto">
+              {loading ? (
+                <p className="text-sm text-gray-500">Loading...</p>
+              ) : dinasList.length === 0 ? (
+                <p className="text-sm text-gray-500">Tidak ada data instansi</p>
+              ) : (
+                dinasList.map((dinas) => (
+                  <div
+                    key={dinas.id}
+                    className="bg-gray-100 border border-red-200 rounded-md px-3 sm:px-4 py-2 text-sm text-black"
+                  >
+                    {dinas.namaDinas}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
 
-                <button
-                  onClick={() => setShowUserModal(true)}
-                  className="flex items-center gap-2 text-xs font-semibold bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-md transition"
-                >
-                  <Plus size={14} />
-                  Tambah User
-                </button>
+          {/* ================= PENGGUNA ================= */}
+          <div className="bg-white rounded-xl shadow-md border border-red-300 p-5 sm:p-6">
+            <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <Users className="w-5 h-5 sm:w-6 sm:h-6 text-black shrink-0" />
+                <h2 className="font-semibold text-base sm:text-lg text-black">Pengguna</h2>
               </div>
 
-              <div className="space-y-3 max-h-80 overflow-y-auto">
-                {loading ? (
-                  <p className="text-sm text-gray-500">Loading...</p>
-                ) : staffList.length === 0 ? (
-                  <p className="text-sm text-gray-500">Tidak ada data staff</p>
-                ) : (
-                  staffList.map((staff) => (
-                    <div
-                      key={staff.id}
-                      className="bg-gray-100 border border-red-200 rounded-md px-4 py-2 flex justify-between items-center"
-                    >
-                      <div>
-                        <p className="text-sm font-medium text-black">
-                          {staff.name}
-                        </p>
-                        <p className="text-xs text-gray-600">
-                          {staff.dinas?.namaDinas}
-                        </p>
-                      </div>
+              <button
+                onClick={() => setShowUserModal(true)}
+                className="flex items-center gap-1.5 text-xs font-semibold bg-red-600 hover:bg-red-700 text-white px-2.5 sm:px-3 py-2 rounded-md transition whitespace-nowrap"
+              >
+                <Plus size={13} />
+                Tambah User
+              </button>
+            </div>
 
-                      <button
-                        onClick={() => setSelectedStaff(staff)}
-                        className="text-gray-600 hover:text-red-600 transition"
-                      >
-                        <Pencil size={16} />
-                      </button>
+            <div className="space-y-2 sm:space-y-3 max-h-72 sm:max-h-80 overflow-y-auto">
+              {loading ? (
+                <p className="text-sm text-gray-500">Loading...</p>
+              ) : staffList.length === 0 ? (
+                <p className="text-sm text-gray-500">Tidak ada data staff</p>
+              ) : (
+                staffList.map((staff) => (
+                  <div
+                    key={staff.id}
+                    className="bg-gray-100 border border-red-200 rounded-md px-3 sm:px-4 py-2 flex justify-between items-center"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-black truncate">{staff.name}</p>
+                      <p className="text-xs text-gray-600 truncate">{staff.dinas?.namaDinas}</p>
                     </div>
-                  ))
-                )}
-              </div>
+
+                    <button
+                      onClick={() => setSelectedStaff(staff)}
+                      className="text-gray-600 hover:text-red-600 transition ml-2 shrink-0"
+                    >
+                      <Pencil size={16} />
+                    </button>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>
@@ -679,14 +628,14 @@ export default function AdminPanelPage() {
       {showDinasModal && (
         <TambahDinasModal
           onClose={() => setShowDinasModal(false)}
-          onSuccess={refreshData}
+          onSuccess={fetchData}
         />
       )}
 
       {showUserModal && (
         <TambahUserModal
           onClose={() => setShowUserModal(false)}
-          onSuccess={refreshData}
+          onSuccess={fetchData}
         />
       )}
 
@@ -695,26 +644,21 @@ export default function AdminPanelPage() {
           staff={selectedStaff}
           onClose={() => setSelectedStaff(null)}
           onSuccess={() => {
-            refreshData();
+            fetchData();
             setSelectedStaff(null);
           }}
         />
       )}
 
-      <style>{`@keyframes fadeIn {
-        from {
-            opacity: 0;
-            transform: scale(0.95);
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; transform: scale(0.95); }
+          to { opacity: 1; transform: scale(1); }
         }
-        to {
-            opacity: 1;
-            transform: scale(1);
-        }
-        }
-
         .animate-fade-in {
-        animation: fadeIn 0.2s ease-out forwards;
-        }`}</style>
+          animation: fadeIn 0.2s ease-out forwards;
+        }
+      `}</style>
     </div>
   );
 }

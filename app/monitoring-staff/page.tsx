@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import {
-  Search,
   LogOut,
   ArrowRight,
   BookOpen,
@@ -93,89 +92,109 @@ export default function InstansiPage() {
 
   return (
     <section className="min-h-screen bg-[#2d0000]">
-      <div className="bg-[#ececec] min-h-screen py-10 px-32">
+      <div className="bg-[#ececec] min-h-screen py-6 px-4 sm:py-8 sm:px-8 lg:py-10 lg:px-16 xl:px-32">
+
         {/* ================= HEADER ================= */}
-        <div className="flex justify-between items-start mb-8">
-          <div className="flex items-start gap-6">
-            <div className="bg-[#CB0E0E] w-16 h-16 rounded-2xl rotate-6 flex items-center justify-center text-white text-3xl shadow-lg">
+        <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-start mb-6 sm:mb-8">
+
+          {/* Kiri: Logo + Judul */}
+          <div className="flex items-center gap-4 sm:items-start sm:gap-6">
+            <div className="bg-[#CB0E0E] w-12 h-12 sm:w-16 sm:h-16 rounded-2xl rotate-6 flex items-center justify-center text-white text-2xl sm:text-3xl shadow-lg shrink-0">
               <BookOpen />
             </div>
-
             <div>
               <p className="text-xs text-[#CB0E0E] tracking-widest uppercase">
                 Sulawesi Selatan
               </p>
-              <h1 className="text-3xl md:text-4xl font-extrabold italic tracking-wide text-black">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold italic tracking-wide text-black">
                 PILIH INSTANSI
               </h1>
             </div>
           </div>
 
-          <div className="flex flex-col items-end gap-4">
-            <div className="bg-white px-4 py-2 rounded-xl shadow flex items-center gap-3">
-              <UserCircle2 size={24} color="green" />
+          {/* Kanan: User info + Logout */}
+          <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-3 sm:gap-4">
+            <div className="bg-white px-3 sm:px-4 py-2 rounded-xl shadow flex items-center gap-2 sm:gap-3">
+              <UserCircle2 size={20} color="green" className="shrink-0" />
               <div>
-                <p className="text-sm font-semibold text-black">
+                <p className="text-xs sm:text-sm font-semibold text-black">
                   {user?.username ?? "Loading..."}
                 </p>
-                <p className="text-xs text-black">{user?.role ?? ""}</p>
+                <p className="text-[10px] sm:text-xs text-black">{user?.role ?? ""}</p>
               </div>
             </div>
 
             <button
               onClick={handleLogout}
-              className="flex items-center gap-2 text-sm bg-[#CB0E0E] text-white px-4 py-2 cursor-pointer rounded-lg shadow hover:bg-red-800 transition"
+              className="flex items-center gap-2 text-xs sm:text-sm bg-[#CB0E0E] text-white px-3 sm:px-4 py-2 cursor-pointer rounded-lg shadow hover:bg-red-800 transition shrink-0"
             >
-              <LogOut size={16} />
+              <LogOut size={14} />
               Logout
             </button>
           </div>
         </div>
 
-        <hr className="mb-8 border-gray-300" />
+        {/* ================= DIVIDER ================= */}
+        <hr className="mb-6 border-gray-300" />
 
         {/* ================= CARD GRID ================= */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-10 text-black">
-          {loading && <p>Loading...</p>}
+        {loading && (
+          <p className="text-gray-500 text-sm">Memuat data...</p>
+        )}
 
-          {!loading &&
-            instansiList.map((item) => (
+        {!loading && instansiList.length === 0 && (
+          <p className="text-gray-500 text-sm">Tidak ada data instansi.</p>
+        )}
+
+        {!loading && instansiList.length > 0 && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 lg:gap-6 text-black">
+            {instansiList.map((item) => (
               <div
                 key={item.id}
                 onClick={() => handleMasukInstansi(item.namaDinas)}
-                className="relative w-50 bg-white rounded-3xl shadow-lg p-6 hover:shadow-xl transition border-t-16 border-[#CB0E0E] cursor-pointer flex flex-col"
+                className="relative bg-white rounded-3xl shadow-lg p-4 lg:p-5 hover:shadow-xl transition border-t-[12px] border-[#CB0E0E] cursor-pointer flex flex-col"
               >
-                <div className="flex justify-between items-center mt-6 mb-6">
-                  <div className="bg-[#CB0E0E] w-14 h-14 rounded-2xl flex items-center justify-center text-white text-2xl shadow">
-                    <BookOpen />
+                {/* Warning jika programPrioritas = 0 */}
+                {item.programPrioritas === 0 && (
+                  <div
+                    title="Belum ada program prioritas"
+                    className="absolute top-3 right-3 bg-red-100 text-[#CB0E0E] rounded-full px-2 py-0.5 text-[10px] shadow"
+                  >
+                    ⚠
                   </div>
+                )}
 
-                  {item.programPrioritas === 0 && (
-                    <div className="bg-red-100 text-[#CB0E0E] px-3 py-1 rounded-full text-xs flex items-center gap-1 shadow">
-                      ⚠
-                    </div>
-                  )}
+                {/* Icon BookOpen */}
+                <div className="mt-3 mb-4">
+                  <div className="bg-[#CB0E0E] w-11 h-11 lg:w-12 lg:h-12 rounded-2xl flex items-center justify-center text-white shadow">
+                    <BookOpen size={20} />
+                  </div>
                 </div>
 
+                {/* Konten */}
                 <div className="flex-1">
-                  <h2 className="text-xl font-bold mb-1">{item.namaDinas}</h2>
-                  <p className="text-xs text-gray-500">Program Prioritas</p>
-                  <p className="text-sm text-[#CB0E0E] font-semibold">
+                  <h2 className="text-sm lg:text-base font-bold mb-1 leading-snug line-clamp-3">
+                    {item.namaDinas}
+                  </h2>
+                  <p className="text-[10px] lg:text-xs text-gray-500 mt-2">Program Prioritas</p>
+                  <p className="text-xs lg:text-sm text-[#CB0E0E] font-semibold">
                     {item.programPrioritas} / {item.totalProgram}
                   </p>
                 </div>
 
-                <div className="flex justify-between items-center mt-6">
-                  <button className="text-xs text-[#CB0E0E] tracking-widest uppercase">
+                {/* Footer */}
+                <div className="flex justify-between items-center mt-4">
+                  <span className="text-[10px] lg:text-xs text-[#CB0E0E] tracking-widest uppercase font-medium">
                     Masuk Instansi
-                  </button>
-                  <div className="w-7 h-7 rounded-full border border-gray-400 flex items-center justify-center">
-                    <ArrowRight size={14} />
+                  </span>
+                  <div className="w-6 h-6 lg:w-7 lg:h-7 rounded-full border border-gray-400 flex items-center justify-center shrink-0">
+                    <ArrowRight size={12} />
                   </div>
                 </div>
               </div>
             ))}
-        </div>
+          </div>
+        )}
       </div>
     </section>
   );

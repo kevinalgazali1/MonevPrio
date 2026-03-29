@@ -12,7 +12,7 @@ import {
   CheckCircle,
   AlertTriangle,
   Download,
-  Building2,
+  Layers,
   Loader2,
   Menu,
 } from "lucide-react";
@@ -155,6 +155,13 @@ export default function AdminMonitoringProgramPage() {
 
   const pengadaanList = program?.pengadaanList ?? [];
   const allTahapan = pengadaanList.flatMap((p) => p.tahapanList);
+
+  // Total tahapan & tahapan selesai
+  const totalTahapan = allTahapan.length;
+  const totalTahapanSelesai = allTahapan.filter(
+    (t) => !!t.progres.aktualTanggalSelesai,
+  ).length;
+
   const tahapanDenganAktual = allTahapan.filter(
     (t) => !!t.progres.aktualTanggalMulai,
   );
@@ -173,12 +180,11 @@ export default function AdminMonitoringProgramPage() {
       maximumFractionDigits: 2,
     }).format(value);
 
-  // ─── Export PDF via print window ─────────────────────────────────────────────
+  // ─── Export PDF ─────────────────────────────────────────────────────────────
   const handleDownloadPDF = () => {
     if (!timelineRef.current || !program) return;
     setExportingPdf(true);
 
-    // Kumpulkan semua stylesheet dari halaman utama
     const styleSheets = Array.from(document.styleSheets)
       .map((sheet) => {
         try {
@@ -197,19 +203,10 @@ export default function AdminMonitoringProgramPage() {
       })
       .join("\n");
 
-    // Klon DOM tabel tanpa merusak tampilan asli
     const clone = timelineRef.current.cloneNode(true) as HTMLElement;
-
-    // Hapus semua tombol dari klon
+    clone.querySelectorAll("button, [role='button']").forEach((el) => el.remove());
     clone
-      .querySelectorAll("button, [role='button']")
-      .forEach((el) => el.remove());
-
-    // Buka constraint scroll agar seluruh baris ter-render
-    clone
-      .querySelectorAll<HTMLElement>(
-        ".overflow-x-auto.overflow-y-auto, .overflow-y-auto",
-      )
+      .querySelectorAll<HTMLElement>(".overflow-x-auto.overflow-y-auto, .overflow-y-auto")
       .forEach((el) => {
         el.style.maxHeight = "none";
         el.style.overflow = "visible";
@@ -222,11 +219,7 @@ export default function AdminMonitoringProgramPage() {
     const printTitle = `Timeline: ${program.namaProgram}`;
     const printSubtitle = `${program.dinas?.namaDinas ?? ""} · Dicetak: ${new Date().toLocaleDateString(
       "id-ID",
-      {
-        day: "2-digit",
-        month: "long",
-        year: "numeric",
-      },
+      { day: "2-digit", month: "long", year: "numeric" },
     )}`;
 
     const html = `<!DOCTYPE html>
@@ -236,68 +229,18 @@ export default function AdminMonitoringProgramPage() {
   <title>${printTitle}</title>
   ${styleSheets}
   <style>
-    @page {
-      size: A3 landscape;
-      margin: 10mm 10mm 12mm 10mm;
-    }
+    @page { size: A3 landscape; margin: 10mm 10mm 12mm 10mm; }
     * { box-sizing: border-box; }
-    body {
-      font-family: sans-serif;
-      font-size: 10px;
-      background: #fff;
-      color: #111;
-      margin: 0;
-      padding: 0;
-    }
-
-    /* ── Header cetak ── */
-    .print-header {
-      margin-bottom: 6px;
-      padding-bottom: 5px;
-      border-bottom: 1.5px solid #cb0e0e;
-    }
-    .print-header h1 {
-      font-size: 14px;
-      font-weight: 700;
-      margin: 0 0 2px 0;
-      color: #1a1a1a;
-    }
-    .print-header p {
-      font-size: 8px;
-      color: #666;
-      margin: 0;
-    }
-
-    /* ── Tabel ── */
-    table {
-      width: 100% !important;
-      border-collapse: collapse !important;
-      table-layout: auto !important;
-    }
-    th, td {
-      font-size: 7.5px !important;
-      padding: 2px 3px !important;
-      border: 1px solid #d1d5db !important;
-      word-break: break-word;
-    }
-
-    /* Pastikan warna bar timeline ikut tercetak */
-    * {
-      -webkit-print-color-adjust: exact !important;
-      print-color-adjust: exact !important;
-    }
-
-    /* Hapus semua tombol */
+    body { font-family: sans-serif; font-size: 10px; background: #fff; color: #111; margin: 0; padding: 0; }
+    .print-header { margin-bottom: 6px; padding-bottom: 5px; border-bottom: 1.5px solid #cb0e0e; }
+    .print-header h1 { font-size: 14px; font-weight: 700; margin: 0 0 2px 0; color: #1a1a1a; }
+    .print-header p { font-size: 8px; color: #666; margin: 0; }
+    table { width: 100% !important; border-collapse: collapse !important; table-layout: auto !important; }
+    th, td { font-size: 7.5px !important; padding: 2px 3px !important; border: 1px solid #d1d5db !important; word-break: break-word; }
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
     button, [role='button'] { display: none !important; }
-
-    /* Hindari page-break di tengah baris */
     tr { page-break-inside: avoid; }
-
-    /* Buka semua overflow */
-    [class*="overflow"] {
-      overflow: visible !important;
-      max-height: none !important;
-    }
+    [class*="overflow"] { overflow: visible !important; max-height: none !important; }
   </style>
 </head>
 <body>
@@ -308,11 +251,7 @@ export default function AdminMonitoringProgramPage() {
   ${clone.innerHTML}
   <script>
     window.onload = function () {
-      // Tunggu font & gambar selesai load
-      setTimeout(function () {
-        window.print();
-        window.close();
-      }, 900);
+      setTimeout(function () { window.print(); window.close(); }, 900);
     };
   </script>
 </body>
@@ -320,17 +259,13 @@ export default function AdminMonitoringProgramPage() {
 
     const printWindow = window.open("", "_blank", "width=1400,height=900");
     if (!printWindow) {
-      alert(
-        "Popup diblokir oleh browser.\nSilakan izinkan popup untuk halaman ini, lalu coba lagi.",
-      );
+      alert("Popup diblokir oleh browser.\nSilakan izinkan popup untuk halaman ini, lalu coba lagi.");
       setExportingPdf(false);
       return;
     }
-
     printWindow.document.open();
     printWindow.document.write(html);
     printWindow.document.close();
-
     setTimeout(() => setExportingPdf(false), 1500);
   };
 
@@ -338,118 +273,126 @@ export default function AdminMonitoringProgramPage() {
 
   return (
     <div className="flex min-h-screen bg-[#ECECEC] text-black">
+      {/* Sidebar — sama dengan gubernur & staff */}
       <Sidebar
         pengadaanList={pengadaanList}
         activeTab={activeTab}
         onTabChange={setActiveTab}
-        sidebarOpen={true}
-        setSidebarOpen={() => {}}
+        sidebarOpen={sidebarOpen}
+        setSidebarOpen={setSidebarOpen}
         namaDinas={program?.dinas?.namaDinas}
       />
 
-      <button
-        onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="text-[#245CCE] sm:hidden mb-4"
-      >
-        <Menu size={26} />
-      </button>
+      {/* Main Content */}
+      <div className="flex-1 lg:ml-64 p-4 sm:p-6 lg:p-8 overflow-auto">
 
-      <div className="flex-1 lg:ml-64 p-8 overflow-auto">
         {/* ── Topbar ── */}
-        <div className="flex justify-end items-center gap-4">
-          <div className="relative">
-            <Search
-              size={16}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-            />
-            <input
-              type="text"
-              placeholder="cari item"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 pr-4 py-2 rounded-lg border-2 border-gray-300 bg-white outline-none focus:ring-2 focus:ring-red-500"
-            />
-          </div>
-
-          <Link
-            href={`/monitoring-staff-master/${dinasId}/${slug}/${subSlug}/arsip`}
-            className="flex items-center gap-2 bg-[#CB0E0E] text-white hover:bg-red-900 px-4 py-2 rounded-lg transition-all"
+        <div className="flex items-center justify-between gap-3 mb-4 sm:mb-0">
+          {/* Burger button — mobile & tablet */}
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="lg:hidden flex items-center justify-center w-10 h-10 rounded-lg bg-white shadow text-[#CB0E0E] hover:bg-gray-50 transition shrink-0"
+            aria-label="Toggle sidebar"
           >
-            <Upload size={16} />
-            Arsip Digital Program
-          </Link>
+            <Menu size={22} />
+          </button>
+
+          {/* Right: Search + Arsip */}
+          <div className="flex items-center gap-2 sm:gap-4 ml-auto flex-wrap justify-end">
+            <div className="relative">
+              <Search
+                size={15}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+              />
+              <input
+                type="text"
+                placeholder="Cari item"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9 pr-3 py-2 text-sm rounded-lg border-2 border-gray-300 bg-white outline-none focus:ring-2 focus:ring-red-500 w-36 sm:w-48"
+              />
+            </div>
+
+            <Link
+              href={`/monitoring-staff-master/${dinasId}/${slug}/${subSlug}/arsip`}
+              className="flex items-center gap-1.5 sm:gap-2 bg-[#CB0E0E] text-white hover:bg-red-900 px-3 sm:px-4 py-2 rounded-lg transition-all text-xs sm:text-sm whitespace-nowrap"
+            >
+              <Upload size={14} />
+              <span className="hidden sm:inline">Arsip Digital Program</span>
+              <span className="sm:hidden">Arsip</span>
+            </Link>
+          </div>
         </div>
 
         {/* ── Summary Cards ── */}
-        <div className="grid grid-cols-4 gap-6 mt-6">
-          <div className="bg-white p-4 rounded-xl shadow flex gap-4 items-center">
-            <Building2 className="text-gray-500 shrink-0" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mt-4 sm:mt-6">
+
+          {/* Total Tahapan */}
+          <div className="bg-white p-3 sm:p-4 rounded-xl shadow flex gap-3 sm:gap-4 items-center">
+            <Layers className="text-gray-500 shrink-0" size={20} />
             <div>
-              <p className="text-xs text-gray-500">TOTAL PROYEK</p>
-              <p className="text-lg font-bold">
-                {loading ? "—" : pengadaanList.length}
+              <p className="text-[10px] sm:text-xs text-gray-500 uppercase">Total Tahapan</p>
+              <p className="text-base sm:text-lg font-bold">
+                {loading ? "—" : `${totalTahapanSelesai} / ${totalTahapan}`}
               </p>
+              <p className="text-[10px] text-gray-400">Selesai / Total</p>
             </div>
           </div>
 
-          <div className="bg-white p-4 rounded-xl shadow flex gap-4 items-center">
-            <CheckCircle className="text-green-500 shrink-0" />
+          {/* Status Aman */}
+          <div className="bg-white p-3 sm:p-4 rounded-xl shadow flex gap-3 sm:gap-4 items-center">
+            <CheckCircle className="text-green-500 shrink-0" size={20} />
             <div>
-              <p className="text-xs text-gray-500">STATUS AMAN</p>
-              <p className="text-lg font-bold">{loading ? "—" : totalAman}</p>
+              <p className="text-[10px] sm:text-xs text-gray-500 uppercase">Status Aman</p>
+              <p className="text-base sm:text-lg font-bold">{loading ? "—" : totalAman}</p>
             </div>
           </div>
 
-          <div className="bg-white p-4 rounded-xl shadow flex gap-4 items-center">
-            <AlertTriangle className="text-red-500 shrink-0" />
+          {/* Kendala */}
+          <div className="bg-white p-3 sm:p-4 rounded-xl shadow flex gap-3 sm:gap-4 items-center">
+            <AlertTriangle className="text-red-500 shrink-0" size={20} />
             <div>
-              <p className="text-xs text-gray-500">KENDALA</p>
-              <p className="text-lg font-bold">
-                {loading ? "—" : totalKendala}
-              </p>
+              <p className="text-[10px] sm:text-xs text-gray-500 uppercase">Kendala</p>
+              <p className="text-base sm:text-lg font-bold">{loading ? "—" : totalKendala}</p>
             </div>
           </div>
 
-          {/* Card Download */}
+          {/* Download */}
           <div
-            onClick={() => {
-              if (!exportingPdf && !loading) handleDownloadPDF();
-            }}
-            className={`bg-white p-4 rounded-xl shadow flex items-center gap-3 
-            cursor-pointer transition hover:bg-gray-100
-            ${exportingPdf || loading ? "opacity-50 cursor-not-allowed" : ""}`}
+            onClick={() => { if (!exportingPdf && !loading) handleDownloadPDF(); }}
+            className={`bg-white p-3 sm:p-4 rounded-xl shadow flex gap-3 sm:gap-4 items-center cursor-pointer transition-colors
+              ${exportingPdf || loading ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-50"}`}
           >
-            <Download className="text-gray-600 shrink-0" />
-
-            <span className="text-sm font-semibold tracking-wide">
-              {exportingPdf ? "MENYIAPKAN PDF..." : "DOWNLOAD"}
-            </span>
+            <Download className="text-gray-600 shrink-0" size={20} />
+            <p className="text-xs sm:text-sm font-semibold uppercase">
+              {exportingPdf ? "Menyiapkan..." : "Download"}
+            </p>
           </div>
         </div>
 
         {/* ── Header Program ── */}
-        <div className="flex justify-between items-center mt-10">
-          <div className="flex flex-row gap-6 items-center">
+        <div className="flex flex-col gap-4 lg:flex-row lg:justify-between lg:items-center mt-6 sm:mt-10">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-6 sm:items-center">
             <div>
-              <h1 className="text-3xl font-bold max-w-105 line-clamp-2">
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold max-w-full lg:max-w-[420px] line-clamp-2">
                 {loading ? (
                   <span className="flex items-center gap-2 text-gray-400">
-                    <Loader2 size={24} className="animate-spin" />
+                    <Loader2 size={20} className="animate-spin" />
                     Memuat...
                   </span>
                 ) : (
                   (program?.namaProgram ?? "—")
                 )}
               </h1>
-              <p className="text-gray-500 text-sm mt-1">
+              <p className="text-gray-500 text-xs sm:text-sm mt-1">
                 {program?.dinas?.namaDinas ?? "—"} &mdash;{" "}
                 {pengadaanList.map((p) => p.jenisPengadaan).join(" & ")}
               </p>
             </div>
 
             {program?.anggaran && (
-              <div className="bg-white text-[#CB0E0E] font-bold rounded-xl px-4 py-2 border-2 border-red-100 flex items-center justify-center whitespace-nowrap">
-                <h1 className="text-2xl">
+              <div className="bg-white text-[#CB0E0E] font-bold rounded-xl px-3 sm:px-4 py-2 border-2 border-red-100 flex items-center justify-center whitespace-nowrap self-start sm:self-auto">
+                <h1 className="text-base sm:text-xl lg:text-2xl">
                   {formatAnggaran(Number(program.anggaran))}
                 </h1>
               </div>
@@ -457,12 +400,12 @@ export default function AdminMonitoringProgramPage() {
           </div>
 
           {/* Filter Tabs */}
-          <div className="flex bg-gray-300 rounded-md px-4 py-2 gap-2 mt-4 w-fit">
+          <div className="flex bg-gray-300 rounded-md px-3 sm:px-4 py-2 gap-1 sm:gap-2 w-fit">
             {filterTabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setFilterStatus(tab.id)}
-                className={`px-4 py-1 rounded-md text-sm transition-all duration-200 ${
+                className={`px-3 sm:px-4 py-1 rounded-md text-xs sm:text-sm transition-all duration-200 ${
                   filterStatus === tab.id
                     ? "bg-white text-[#CB0E0E] border border-red-100"
                     : "bg-gray-300 hover:bg-gray-200"
@@ -475,7 +418,7 @@ export default function AdminMonitoringProgramPage() {
         </div>
 
         {/* ── Timeline Table ── */}
-        <div className="mt-6 bg-white rounded-xl shadow p-4">
+        <div className="mt-4 sm:mt-6 bg-white rounded-xl shadow p-3 sm:p-4">
           {loading ? (
             <div className="flex items-center justify-center py-16 text-gray-400 gap-2">
               <Loader2 size={20} className="animate-spin" />
