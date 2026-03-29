@@ -126,7 +126,7 @@ export default function LoginPage() {
             </div>
 
             <h2 className="text-center text-lg sm:text-xl font-bold text-gray-800">
-              MonevPrio
+              MONEVPRIO
             </h2>
             <p className="text-center text-gray-500 text-xs sm:text-sm mb-6 tracking-widest">
               SULAWESI SELATAN
