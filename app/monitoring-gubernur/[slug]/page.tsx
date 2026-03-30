@@ -23,6 +23,10 @@ interface ProgramItem {
   pengadaanList: string[];
   isSelesai: boolean;
   isTerlambat: boolean;
+  isPrioritas: boolean;
+  tahapanSaatIni: string | null;
+  keteranganSaatIni: string | null;
+  status: string;
 }
 
 export default function GubernurProgramPage() {
@@ -59,6 +63,7 @@ export default function GubernurProgramPage() {
 
       if (json?.data) {
         setProgramList(json.data);
+        console.log(json);
       }
     } catch (err) {
       console.error("Error fetch program:", err);
@@ -151,7 +156,6 @@ export default function GubernurProgramPage() {
         {!loading && filteredProgram.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4 lg:gap-6 text-black items-stretch">
             {filteredProgram.map((item) => {
-              // Tampilkan icon terlambat hanya jika belum selesai
               const showTerlambat = item.isTerlambat && !item.isSelesai;
 
               return (
@@ -199,6 +203,26 @@ export default function GubernurProgramPage() {
                       <p className="text-[10px] lg:text-xs text-gray-500 line-clamp-2">
                         METODE : {item.pengadaanList.join(", ")}
                       </p>
+                    </div>
+
+                    {/* ===== TAHAPAN & KETERANGAN ===== */}
+                    <div className="mt-3 pt-3 border-t border-gray-100 space-y-1.5">
+                      <div className="flex items-start gap-1.5">
+                        <span className="text-[9px] lg:text-[10px] text-gray-400 uppercase tracking-wide shrink-0 mt-0.5">
+                          Tahapan
+                        </span>
+                        <span className="text-[10px] lg:text-xs font-semibold text-[#CB0E0E] leading-tight">
+                          {item.tahapanSaatIni ?? "-"}
+                        </span>
+                      </div>
+                      <div className="flex items-start gap-1.5">
+                        <span className="text-[9px] lg:text-[10px] text-gray-400 uppercase tracking-wide shrink-0 mt-0.5">
+                          Ket.
+                        </span>
+                        <span className="text-[10px] lg:text-xs text-gray-600 leading-tight line-clamp-2">
+                          {item.keteranganSaatIni ?? "-"}
+                        </span>
+                      </div>
                     </div>
 
                     {/* Footer: anggaran + arrow */}
