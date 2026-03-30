@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import SidebarAdmin from "@/components/SidebarAdmin";
 import { getCookie } from "cookies-next";
 import Swal from "sweetalert2";
-import { Check, X, Menu, Mail } from "lucide-react";
+import { Check, X, Menu, Mail, Search } from "lucide-react";
 
 interface InboxItem {
   id: number;
@@ -21,6 +21,7 @@ export default function KotakMasuk() {
   const [data, setData] = useState<InboxItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const formatRupiah = (value: number) => {
     return new Intl.NumberFormat("id-ID", {
@@ -56,6 +57,11 @@ export default function KotakMasuk() {
   useEffect(() => {
     fetchInbox();
   }, []);
+
+  // Filter data berdasarkan searchQuery
+  const filteredData = data.filter((item) =>
+    item.namaProgram.toLowerCase().includes(searchQuery.toLowerCase()),
+  );
 
   /* ================= TERIMA ================= */
 
@@ -172,6 +178,30 @@ export default function KotakMasuk() {
 
         <hr className="mb-5 sm:mb-6 border-gray-300" />
 
+        {/* ================= SEARCH BAR ================= */}
+        <div className="relative mb-5 sm:mb-6">
+          <Search
+            size={16}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+          />
+          <input
+            type="text"
+            placeholder="Cari nama program..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full sm:max-w-sm pl-9 pr-4 py-2.5 rounded-xl border border-gray-300 bg-white text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-[#8A0707] focus:border-transparent transition"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition"
+              aria-label="Hapus pencarian"
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
+
         {/* ================= STATE ================= */}
 
         {loading && (
@@ -182,9 +212,15 @@ export default function KotakMasuk() {
           <p className="text-gray-500 text-sm">Tidak ada pengajuan program</p>
         )}
 
+        {!loading && data.length > 0 && filteredData.length === 0 && (
+          <p className="text-gray-500 text-sm">
+            Tidak ditemukan program dengan nama &quot;{searchQuery}&quot;
+          </p>
+        )}
+
         {/* ================= LIST ================= */}
         <div className="flex flex-col gap-4 sm:gap-6">
-          {data.map((item) => (
+          {filteredData.map((item) => (
             <div
               key={item.id}
               className="bg-white rounded-2xl shadow-lg border-l-[6px] sm:border-l-8 border-[#CB0E0E] p-4 sm:p-6"
