@@ -452,7 +452,6 @@ export default function AdminProgramPage() {
                           {item.isTerlambat && (
                             <div className="flex items-center gap-1 bg-orange-100 text-orange-600 px-2.5 py-1 rounded-full text-[10px] lg:text-xs shadow-sm">
                               <AlertTriangle size={11} />
-                              Terlambat
                             </div>
                           )}
                           {/* Badge Status */}
