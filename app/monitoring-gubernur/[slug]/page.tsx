@@ -160,82 +160,91 @@ export default function GubernurProgramPage() {
               const showTerlambat = item.isTerlambat && !item.isSelesai;
 
               return (
-                <Link
-                  key={item.id}
-                  href={`/monitoring-gubernur/${slug}/${item.slug}`}
-                  className="block"
-                >
-                  <div className="relative bg-white rounded-3xl shadow-lg p-4 lg:p-5 hover:shadow-xl transition border-t-[12px] border-[#CB0E0E] flex flex-col cursor-pointer hover:scale-[1.02] duration-200 h-full min-h-[220px] sm:min-h-[240px]">
-                    {/* Icon terlambat — pojok kanan atas */}
-                    {showTerlambat && (
-                      <div
-                        title="Program terlambat"
-                        className="absolute top-3 right-3 bg-yellow-400 rounded-full p-1 shadow"
-                      >
-                        <AlertTriangle size={13} className="text-white" />
-                      </div>
-                    )}
-
-                    {/* Atas: icon + badge status */}
-                    <div className="flex justify-between items-center mt-4 mb-4">
-                      <div className="bg-[#CB0E0E] w-11 h-11 lg:w-12 lg:h-12 rounded-2xl flex items-center justify-center text-white shadow">
-                        <BookOpen size={20} />
-                      </div>
-
-                      {item.isSelesai ? (
-                        <div className="flex items-center gap-1.5 bg-green-100 text-green-700 px-2.5 py-1 rounded-full text-[10px] lg:text-xs shadow-sm">
-                          <Check size={12} />
-                          Selesai
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-1.5 bg-blue-100 text-blue-600 px-2.5 py-1 rounded-full text-[10px] lg:text-xs shadow-sm">
-                          <Clock size={12} />
-                          Aktif
+                <div key={item.id} className="relative group">
+                  {/* Tooltip nama program */}
+                  <div className="absolute -top-2 left-1/2 -translate-x-1/2 -translate-y-full z-20 hidden group-hover:block pointer-events-none">
+                    <div className="bg-gray-800 text-white text-xs px-3 py-2 rounded-lg shadow-lg w-max max-w-[260px] text-center leading-snug break-words">
+                      {item.namaProgram}
+                    </div>
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-800" />
+                  </div>
+                  <Link
+                    key={item.id}
+                    href={`/monitoring-gubernur/${slug}/${item.slug}`}
+                    className="block"
+                  >
+                    <div className="relative bg-white rounded-3xl shadow-lg p-4 lg:p-5 hover:shadow-xl transition border-t-[12px] border-[#CB0E0E] flex flex-col cursor-pointer hover:scale-[1.02] duration-200 h-full min-h-[220px] sm:min-h-[240px]">
+                      {/* Icon terlambat — pojok kanan atas */}
+                      {showTerlambat && (
+                        <div
+                          title="Program terlambat"
+                          className="absolute top-3 right-3 bg-yellow-400 rounded-full p-1 shadow"
+                        >
+                          <AlertTriangle size={13} className="text-white" />
                         </div>
                       )}
-                    </div>
 
-                    {/* Konten */}
-                    <div className="flex-1">
-                      <h2 className="text-sm lg:text-base font-bold leading-snug mb-2 line-clamp-3">
-                        {item.namaProgram}
-                      </h2>
-                      <p className="text-[10px] lg:text-xs text-gray-500 line-clamp-2">
-                        METODE : {item.pengadaanList.join(", ")}
-                      </p>
-                    </div>
+                      {/* Atas: icon + badge status */}
+                      <div className="flex justify-between items-center mt-4 mb-4">
+                        <div className="bg-[#CB0E0E] w-11 h-11 lg:w-12 lg:h-12 rounded-2xl flex items-center justify-center text-white shadow">
+                          <BookOpen size={20} />
+                        </div>
 
-                    {/* ===== TAHAPAN & KETERANGAN ===== */}
-                    <div className="mt-3 pt-3 border-t border-gray-100 space-y-1.5">
-                      <div className="flex items-start gap-1.5">
-                        <span className="text-[9px] lg:text-[10px] text-gray-400 uppercase tracking-wide shrink-0 mt-0.5">
-                          Tahapan
-                        </span>
-                        <span className="text-[10px] lg:text-xs font-semibold text-[#CB0E0E] leading-tight">
-                          {item.tahapanSaatIni ?? "-"}
-                        </span>
+                        {item.isSelesai ? (
+                          <div className="flex items-center gap-1.5 bg-green-100 text-green-700 px-2.5 py-1 rounded-full text-[10px] lg:text-xs shadow-sm">
+                            <Check size={12} />
+                            Selesai
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5 bg-blue-100 text-blue-600 px-2.5 py-1 rounded-full text-[10px] lg:text-xs shadow-sm">
+                            <Clock size={12} />
+                            Aktif
+                          </div>
+                        )}
                       </div>
-                      <div className="flex items-start gap-1.5">
-                        <span className="text-[9px] lg:text-[10px] text-gray-400 uppercase tracking-wide shrink-0 mt-0.5">
-                          Ket.
-                        </span>
-                        <span className="text-[10px] lg:text-xs text-gray-600 leading-tight line-clamp-2">
-                          {item.keteranganSaatIni ?? "-"}
-                        </span>
-                      </div>
-                    </div>
 
-                    {/* Footer: anggaran + arrow */}
-                    <div className="flex justify-between items-center mt-4">
-                      <p className="text-[#CB0E0E] text-sm lg:text-base font-bold">
-                        {formatRupiahCompact(Number(item.anggaran))}
-                      </p>
-                      <div className="w-6 h-6 lg:w-7 lg:h-7 rounded-full border border-gray-400 flex items-center justify-center shrink-0">
-                        <ArrowRight size={12} />
+                      {/* Konten */}
+                      <div className="flex-1">
+                        <h2 className="text-sm lg:text-base font-bold leading-snug mb-2 line-clamp-3">
+                          {item.namaProgram}
+                        </h2>
+                        <p className="text-[10px] lg:text-xs text-gray-500 line-clamp-2">
+                          METODE : {item.pengadaanList.join(", ")}
+                        </p>
+                      </div>
+
+                      {/* ===== TAHAPAN & KETERANGAN ===== */}
+                      <div className="mt-3 pt-3 border-t border-gray-100 space-y-1.5">
+                        <div className="flex items-start gap-1.5">
+                          <span className="text-[9px] lg:text-[10px] text-gray-400 uppercase tracking-wide shrink-0 mt-0.5">
+                            Tahapan
+                          </span>
+                          <span className="text-[10px] lg:text-xs font-semibold text-[#CB0E0E] leading-tight">
+                            {item.tahapanSaatIni ?? "-"}
+                          </span>
+                        </div>
+                        <div className="flex items-start gap-1.5">
+                          <span className="text-[9px] lg:text-[10px] text-gray-400 uppercase tracking-wide shrink-0 mt-0.5">
+                            Ket.
+                          </span>
+                          <span className="text-[10px] lg:text-xs text-gray-600 leading-tight line-clamp-2">
+                            {item.keteranganSaatIni ?? "-"}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Footer: anggaran + arrow */}
+                      <div className="flex justify-between items-center mt-4">
+                        <p className="text-[#CB0E0E] text-sm lg:text-base font-bold">
+                          {formatRupiahCompact(Number(item.anggaran))}
+                        </p>
+                        <div className="w-6 h-6 lg:w-7 lg:h-7 rounded-full border border-gray-400 flex items-center justify-center shrink-0">
+                          <ArrowRight size={12} />
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </Link>
+                  </Link>
+                </div>
               );
             })}
           </div>

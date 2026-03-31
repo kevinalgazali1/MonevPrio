@@ -387,7 +387,14 @@ export default function AdminProgramPage() {
             {filteredProgram.map((item) => {
               const subSlug = slugify(item.namaProgram);
               return (
-                <div key={item.id} className="relative group">
+                <div key={item.id} className="relative group h-full">
+                  {/* Tooltip nama program */}
+                  <div className="absolute -top-2 left-1/2 -translate-x-1/2 -translate-y-full z-20 hidden group-hover:block pointer-events-none">
+                    <div className="bg-gray-800 text-white text-xs px-3 py-2 rounded-lg shadow-lg w-max max-w-[260px] text-center leading-snug break-words">
+                      {item.namaProgram}
+                    </div>
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-800" />
+                  </div>
                   {/* Action buttons — top right */}
                   <div className="absolute top-3 right-3 z-10 flex gap-1.5 mt-2">
                     {/* Lock / Unlock */}
@@ -431,7 +438,7 @@ export default function AdminProgramPage() {
 
                   <Link
                     href={`/monitoring-staff-master/${dinasId}/${slug}/${subSlug}`}
-                    className="block"
+                    className="block h-full"
                   >
                     <div className="relative bg-white rounded-3xl shadow-lg p-4 lg:p-5 hover:shadow-xl transition border-t-[12px] border-[#CB0E0E] flex flex-col cursor-pointer hover:scale-[1.02] duration-200 h-full min-h-[220px] sm:min-h-[240px]">
                       {/* Atas: icon + badge */}
@@ -445,7 +452,6 @@ export default function AdminProgramPage() {
                           {item.isPlanningLocked && (
                             <div className="flex items-center gap-1 bg-amber-100 text-amber-600 px-2.5 py-1 rounded-full text-[10px] lg:text-xs shadow-sm">
                               <Lock size={10} />
-                              Terkunci
                             </div>
                           )}
                           {/* Badge Terlambat */}

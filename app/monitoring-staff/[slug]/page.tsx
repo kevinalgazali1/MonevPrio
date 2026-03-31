@@ -58,7 +58,9 @@ interface CreateProgramResponse {
 
 export default function StaffProgramPage() {
   const [open, setOpen] = useState(false);
-  const [metodeOptions, setMetodeOptions] = useState<MetodePengadaanOption[]>([]);
+  const [metodeOptions, setMetodeOptions] = useState<MetodePengadaanOption[]>(
+    [],
+  );
   const [programList, setProgramList] = useState<ProgramItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [namaProgram, setNamaProgram] = useState("");
@@ -78,10 +80,17 @@ export default function StaffProgramPage() {
   const slug = params?.slug as string;
 
   const slugify = (text: string) =>
-    text.toLowerCase().replace(/[^a-z0-9\s-]/g, "").trim().replace(/\s+/g, "-");
+    text
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, "")
+      .trim()
+      .replace(/\s+/g, "-");
 
   const formatNamaDinas = (slug: string) =>
-    slug?.split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+    slug
+      ?.split("-")
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(" ");
 
   const fetchProgram = async () => {
     try {
@@ -121,8 +130,14 @@ export default function StaffProgramPage() {
   const handleMetodeRemove = (key: string) => {
     setMetode((prev) => prev.filter((m) => m.key !== key));
   };
-  const handleMetodeUpdateItem = (key: string, field: "title" | "anggaran", value: string) => {
-    setMetode((prev) => prev.map((m) => (m.key === key ? { ...m, [field]: value } : m)));
+  const handleMetodeUpdateItem = (
+    key: string,
+    field: "title" | "anggaran",
+    value: string,
+  ) => {
+    setMetode((prev) =>
+      prev.map((m) => (m.key === key ? { ...m, [field]: value } : m)),
+    );
   };
 
   /* ── Edit: metode handlers ── */
@@ -135,18 +150,38 @@ export default function StaffProgramPage() {
   const handleEditMetodeRemove = (key: string) => {
     setEditMetode((prev) => prev.filter((m) => m.key !== key));
   };
-  const handleEditMetodeUpdateItem = (key: string, field: "title" | "anggaran", value: string) => {
-    setEditMetode((prev) => prev.map((m) => (m.key === key ? { ...m, [field]: value } : m)));
+  const handleEditMetodeUpdateItem = (
+    key: string,
+    field: "title" | "anggaran",
+    value: string,
+  ) => {
+    setEditMetode((prev) =>
+      prev.map((m) => (m.key === key ? { ...m, [field]: value } : m)),
+    );
   };
 
   /* ── Submit tambah ── */
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!namaProgram.trim()) { toast.error("Nama strong point wajib diisi"); return; }
-    if (!tanggalMulai) { toast.error("Tanggal mulai wajib diisi"); return; }
-    if (metode.length === 0) { toast.error("Pilih minimal satu metode pengadaan"); return; }
-    const invalidAnggaran = metode.some((m) => !m.anggaran || Number(m.anggaran.replace(/\./g, "")) <= 0);
-    if (invalidAnggaran) { toast.error("Anggaran setiap metode harus diisi"); return; }
+    if (!namaProgram.trim()) {
+      toast.error("Nama strong point wajib diisi");
+      return;
+    }
+    if (!tanggalMulai) {
+      toast.error("Tanggal mulai wajib diisi");
+      return;
+    }
+    if (metode.length === 0) {
+      toast.error("Pilih minimal satu metode pengadaan");
+      return;
+    }
+    const invalidAnggaran = metode.some(
+      (m) => !m.anggaran || Number(m.anggaran.replace(/\./g, "")) <= 0,
+    );
+    if (invalidAnggaran) {
+      toast.error("Anggaran setiap metode harus diisi");
+      return;
+    }
 
     try {
       setSubmitting(true);
@@ -160,11 +195,17 @@ export default function StaffProgramPage() {
           anggaran: Number(m.anggaran.replace(/\./g, "")),
         })),
       };
-      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_API}/staff/program`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify(payload),
-      });
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_API}/staff/program`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(payload),
+        },
+      );
       if (!res.ok) throw new Error();
       const json: CreateProgramResponse = await res.json();
       toast.success(json.msg);
@@ -184,7 +225,9 @@ export default function StaffProgramPage() {
   const handleOpenEdit = (item: ProgramItem) => {
     setEditId(item.id);
     setEditNamaProgram(item.namaProgram);
-    setEditTanggalMulai(item.tanggalMulai ? item.tanggalMulai.slice(0, 10) : "");
+    setEditTanggalMulai(
+      item.tanggalMulai ? item.tanggalMulai.slice(0, 10) : "",
+    );
     setEditMetode([]);
     setOpenEdit(true);
   };
@@ -192,13 +235,26 @@ export default function StaffProgramPage() {
   /* ── Submit edit ── */
   const handleEditSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!editNamaProgram.trim()) { toast.error("Nama program wajib diisi"); return; }
-    if (!editTanggalMulai) { toast.error("Tanggal mulai wajib diisi"); return; }
-    if (editMetode.length === 0) { toast.error("Pilih minimal satu metode pengadaan"); return; }
+    if (!editNamaProgram.trim()) {
+      toast.error("Nama program wajib diisi");
+      return;
+    }
+    if (!editTanggalMulai) {
+      toast.error("Tanggal mulai wajib diisi");
+      return;
+    }
+    if (editMetode.length === 0) {
+      toast.error("Pilih minimal satu metode pengadaan");
+      return;
+    }
     const invalidAnggaran = editMetode.some(
-      (m) => !m.anggaran || Number(m.anggaran.toString().replace(/\./g, "")) <= 0,
+      (m) =>
+        !m.anggaran || Number(m.anggaran.toString().replace(/\./g, "")) <= 0,
     );
-    if (invalidAnggaran) { toast.error("Anggaran setiap metode harus diisi"); return; }
+    if (invalidAnggaran) {
+      toast.error("Anggaran setiap metode harus diisi");
+      return;
+    }
 
     try {
       setSubmittingEdit(true);
@@ -216,7 +272,10 @@ export default function StaffProgramPage() {
         `${process.env.NEXT_PUBLIC_BACKEND_API}/staff/program/${editId}`,
         {
           method: "PATCH",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
           body: JSON.stringify(payload),
         },
       );
@@ -248,23 +307,40 @@ export default function StaffProgramPage() {
     if (!result.isConfirmed) return;
     try {
       const token = getCookie("accessToken");
-      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_API}/staff/program/${id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_API}/staff/program/${id}`,
+        {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
       if (!res.ok) throw new Error();
-      Swal.fire({ icon: "success", title: "Berhasil", text: "Program berhasil dihapus", timer: 1500, showConfirmButton: false });
+      Swal.fire({
+        icon: "success",
+        title: "Berhasil",
+        text: "Program berhasil dihapus",
+        timer: 1500,
+        showConfirmButton: false,
+      });
       fetchProgram();
     } catch {
-      Swal.fire({ icon: "error", title: "Gagal", text: "Terjadi kesalahan saat menghapus program" });
+      Swal.fire({
+        icon: "error",
+        title: "Gagal",
+        text: "Terjadi kesalahan saat menghapus program",
+      });
     }
   };
 
   const formatRupiahCompact = (value: number) => {
-    if (value >= 1_000_000_000_000) return `Rp ${(value / 1_000_000_000_000).toLocaleString("id-ID", { maximumFractionDigits: 1 })} Triliun`;
-    if (value >= 1_000_000_000) return `Rp ${(value / 1_000_000_000).toLocaleString("id-ID", { maximumFractionDigits: 1 })} Miliar`;
-    if (value >= 1_000_000) return `Rp ${(value / 1_000_000).toLocaleString("id-ID", { maximumFractionDigits: 1 })} Juta`;
-    if (value >= 1_000) return `Rp ${(value / 1_000).toLocaleString("id-ID", { maximumFractionDigits: 1 })} Ribu`;
+    if (value >= 1_000_000_000_000)
+      return `Rp ${(value / 1_000_000_000_000).toLocaleString("id-ID", { maximumFractionDigits: 1 })} Triliun`;
+    if (value >= 1_000_000_000)
+      return `Rp ${(value / 1_000_000_000).toLocaleString("id-ID", { maximumFractionDigits: 1 })} Miliar`;
+    if (value >= 1_000_000)
+      return `Rp ${(value / 1_000_000).toLocaleString("id-ID", { maximumFractionDigits: 1 })} Juta`;
+    if (value >= 1_000)
+      return `Rp ${(value / 1_000).toLocaleString("id-ID", { maximumFractionDigits: 1 })} Ribu`;
     return `Rp ${value.toLocaleString("id-ID")}`;
   };
 
@@ -275,7 +351,6 @@ export default function StaffProgramPage() {
   return (
     <section className="min-h-screen">
       <div className="bg-[#ececec] min-h-screen py-6 px-4 sm:py-8 sm:px-8 lg:py-10 lg:px-16 xl:px-32 text-black">
-
         {/* ================= HEADER ================= */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-6">
           <div className="flex items-center gap-4 sm:items-start sm:gap-6">
@@ -298,7 +373,11 @@ export default function StaffProgramPage() {
           <hr className="hidden sm:block flex-1 border-gray-300" />
           <div className="flex items-center gap-3 sm:ml-6">
             <div className="relative flex-1 sm:flex-none sm:w-64">
-              <Search size={16} color="grey" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <Search
+                size={16}
+                color="grey"
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+              />
               <input
                 type="text"
                 placeholder="Cari program..."
@@ -332,7 +411,9 @@ export default function StaffProgramPage() {
         {loading && <p className="text-gray-500 text-sm">Memuat data...</p>}
 
         {!loading && filteredProgram.length === 0 && (
-          <p className="text-gray-500 col-span-full text-center text-sm">Program tidak ditemukan</p>
+          <p className="text-gray-500 col-span-full text-center text-sm">
+            Program tidak ditemukan
+          </p>
         )}
 
         {!loading && filteredProgram.length > 0 && (
@@ -346,14 +427,22 @@ export default function StaffProgramPage() {
                   {isMenunggu && (
                     <div className="absolute top-3 right-3 mt-2 flex gap-1.5 z-10">
                       <button
-                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleOpenEdit(item); }}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleOpenEdit(item);
+                        }}
                         className="p-1.5 rounded-lg border bg-white hover:bg-gray-100 shadow-sm"
                         title="Edit program"
                       >
                         <Pencil size={14} />
                       </button>
                       <button
-                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDelete(item.id); }}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleDelete(item.id);
+                        }}
                         className="p-1.5 rounded-lg border bg-white hover:bg-red-50 text-red-600 shadow-sm"
                         title="Hapus program"
                       >
@@ -371,15 +460,19 @@ export default function StaffProgramPage() {
                   </div>
 
                   <Link
-                    href={isMenunggu ? "#" : `/monitoring-staff/${slug}/${item.slug}`}
+                    href={
+                      isMenunggu
+                        ? "#"
+                        : `/monitoring-staff/${slug}/${item.slug}`
+                    }
                     className={`block h-full ${isMenunggu ? "pointer-events-none cursor-not-allowed" : ""}`}
                   >
-                    <div
-                      className="relative bg-white rounded-3xl shadow-lg p-4 lg:p-5 hover:shadow-xl transition border-t-[12px] border-[#CB0E0E] flex flex-col cursor-pointer hover:scale-[1.02] duration-200 h-full min-h-[220px] sm:min-h-[240px]"
-                      title={item.namaProgram}
-                    >
+                    <div className="relative bg-white rounded-3xl shadow-lg p-4 lg:p-5 hover:shadow-xl transition border-t-[12px] border-[#CB0E0E] flex flex-col cursor-pointer hover:scale-[1.02] duration-200 h-full min-h-[220px] sm:min-h-[240px]">
                       {showTerlambat && !isMenunggu && (
-                        <div title="Program terlambat" className="absolute top-3 right-3 bg-yellow-400 rounded-full p-1 shadow">
+                        <div
+                          title="Program terlambat"
+                          className="absolute top-3 right-3 bg-yellow-400 rounded-full p-1 shadow"
+                        >
                           <AlertTriangle size={13} className="text-white" />
                         </div>
                       )}
@@ -408,7 +501,8 @@ export default function StaffProgramPage() {
                           {item.namaProgram}
                         </h2>
                         <p className="text-[10px] lg:text-xs text-gray-500 line-clamp-2">
-                          METODE : {item.pengadaanList.map((p) => p.metode).join(", ")}
+                          METODE :{" "}
+                          {item.pengadaanList.map((p) => p.metode).join(", ")}
                         </p>
                       </div>
 
@@ -445,14 +539,19 @@ export default function StaffProgramPage() {
                 <p className="text-sm font-semibold italic">REGISTRASI BARU</p>
                 <p className="text-xs text-gray-600">{formatNamaDinas(slug)}</p>
               </div>
-              <button onClick={() => setOpen(false)} className="text-gray-600 hover:text-black">
+              <button
+                onClick={() => setOpen(false)}
+                className="text-gray-600 hover:text-black"
+              >
                 <X size={18} />
               </button>
             </div>
             <hr className="my-5 sm:my-6 border-gray-300" />
             <form className="space-y-4 sm:space-y-5" onSubmit={handleSubmit}>
               <div>
-                <label className="text-sm text-gray-600">Nama Strong Point</label>
+                <label className="text-sm text-gray-600">
+                  Nama Strong Point
+                </label>
                 <input
                   type="text"
                   value={namaProgram}
@@ -470,7 +569,9 @@ export default function StaffProgramPage() {
                 />
               </div>
               <div>
-                <label className="text-sm text-gray-600">Metode Pengadaan</label>
+                <label className="text-sm text-gray-600">
+                  Metode Pengadaan
+                </label>
                 <MultiSelectMetode
                   options={metodeOptions}
                   selected={metode}
@@ -522,14 +623,22 @@ export default function StaffProgramPage() {
                 <p className="text-sm font-semibold italic">EDIT PROGRAM</p>
                 <p className="text-xs text-gray-600">{formatNamaDinas(slug)}</p>
               </div>
-              <button onClick={() => setOpenEdit(false)} className="text-gray-600 hover:text-black">
+              <button
+                onClick={() => setOpenEdit(false)}
+                className="text-gray-600 hover:text-black"
+              >
                 <X size={18} />
               </button>
             </div>
             <hr className="my-5 sm:my-6 border-gray-300" />
-            <form className="space-y-4 sm:space-y-5" onSubmit={handleEditSubmit}>
+            <form
+              className="space-y-4 sm:space-y-5"
+              onSubmit={handleEditSubmit}
+            >
               <div>
-                <label className="text-sm text-gray-600">Nama Strong Point</label>
+                <label className="text-sm text-gray-600">
+                  Nama Strong Point
+                </label>
                 <input
                   type="text"
                   value={editNamaProgram}
@@ -547,7 +656,9 @@ export default function StaffProgramPage() {
                 />
               </div>
               <div>
-                <label className="text-sm text-gray-600">Metode Pengadaan</label>
+                <label className="text-sm text-gray-600">
+                  Metode Pengadaan
+                </label>
                 <MultiSelectMetode
                   options={metodeOptions}
                   selected={editMetode}
