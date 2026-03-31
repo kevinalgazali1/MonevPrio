@@ -83,6 +83,7 @@ interface TimelineTableProps {
   pengadaanList?: Pengadaan[];
   filterStatus?: string;
   activeTab?: string;
+  isPlanningLocked?: boolean;
 }
 
 // ─── Date helpers ──────────────────────────────────────────────────────────────
@@ -1034,6 +1035,7 @@ export default function TimelineTable({
   pengadaanList = [],
   filterStatus = "semua",
   activeTab = "semua",
+  isPlanningLocked = false,
 }: TimelineTableProps) {
   const [modal, setModal] = useState<{
     type: ModalType;
@@ -1061,6 +1063,16 @@ export default function TimelineTable({
     return role.toLowerCase() === "gubernur";
   })();
   const canEditTimeline = !isGubernur;
+  const isStaff = (() => {
+    const token = getCookie("accessToken");
+    if (!token || typeof token !== "string") return false;
+    const payload = decodeJwtPayload(token);
+    const role: string =
+      payload?.role ?? payload?.roles ?? payload?.user?.role ?? "";
+    return role.toLowerCase() === "staff";
+  })();
+
+  const planButtonDisabled = isStaff && isPlanningLocked;
 
   // ── Tab & status filter ────────────────────────────────────────────────────
   let tabFilteredList = pengadaanList;
@@ -1522,13 +1534,27 @@ export default function TimelineTable({
                                       <>
                                         <button
                                           onClick={() =>
-                                            setModal({
-                                              type: "plan",
-                                              tahapan,
-                                              prevTahapanSelesai,
-                                            })
+                                            planButtonDisabled
+                                              ? toast.error(
+                                                  "Planning telah dikunci oleh admin",
+                                                )
+                                              : setModal({
+                                                  type: "plan",
+                                                  tahapan,
+                                                  prevTahapanSelesai,
+                                                })
                                           }
-                                          className="px-2 py-0.5 text-[10px] border bg-gray-300 border-gray-300 rounded-full text-black hover:bg-gray-100 active:scale-95 transition-all shadow-sm"
+                                          disabled={planButtonDisabled}
+                                          title={
+                                            planButtonDisabled
+                                              ? "Planning dikunci oleh admin"
+                                              : undefined
+                                          }
+                                          className={`px-2 py-0.5 text-[10px] border rounded-full transition-all shadow-sm ${
+                                            planButtonDisabled
+                                              ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
+                                              : "bg-gray-300 border-gray-300 text-black hover:bg-gray-100 active:scale-95"
+                                          }`}
                                         >
                                           PLAN
                                         </button>

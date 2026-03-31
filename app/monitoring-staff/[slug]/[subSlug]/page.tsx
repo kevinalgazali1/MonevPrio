@@ -58,6 +58,7 @@ interface ProgramDetail {
   slug: string;
   anggaran: string;
   isPrioritas: boolean;
+  isPlanningLocked: boolean;
   createdAt: string;
   dinas: { namaDinas: string };
   dokumenProgram: string[];
@@ -402,6 +403,7 @@ export default function MonitoringProgramPage() {
               <TimelineTable
                 namaProgram={program?.namaProgram ?? ""}
                 pengadaanList={pengadaanList}
+                isPlanningLocked={program?.isPlanningLocked}
                 filterStatus={filterStatus}
                 activeTab={activeTab}
               />

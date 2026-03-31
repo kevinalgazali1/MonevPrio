@@ -88,14 +88,15 @@ export default function GubernurProgramPage() {
     return `Rp ${value.toLocaleString("id-ID")}`;
   };
 
-  const filteredProgram = programList.filter((item) =>
-    item.namaProgram.toLowerCase().includes(searchTerm.toLowerCase()),
-  );
+  const filteredProgram = programList
+    .filter((item) =>
+      item.namaProgram.toLowerCase().includes(searchTerm.toLowerCase()),
+    )
+    .sort((a, b) => Number(b.anggaran) - Number(a.anggaran));
 
   return (
     <section className="min-h-screen">
       <div className="bg-[#ececec] min-h-screen py-6 px-4 sm:py-8 sm:px-8 lg:py-10 lg:px-16 xl:px-32 text-black">
-
         {/* ================= HEADER ================= */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-6">
           <div className="flex items-center gap-4 sm:items-start sm:gap-6">
@@ -165,7 +166,6 @@ export default function GubernurProgramPage() {
                   className="block"
                 >
                   <div className="relative bg-white rounded-3xl shadow-lg p-4 lg:p-5 hover:shadow-xl transition border-t-[12px] border-[#CB0E0E] flex flex-col cursor-pointer hover:scale-[1.02] duration-200 h-full min-h-[220px] sm:min-h-[240px]">
-
                     {/* Icon terlambat — pojok kanan atas */}
                     {showTerlambat && (
                       <div

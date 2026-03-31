@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -13,6 +14,7 @@ import {
 import MultiSelectMetode, {
   SelectedMetode,
 } from "@/components/MultiSelectMetode";
+import Swal from "sweetalert2";
 import {
   Search,
   Plus,
@@ -24,6 +26,9 @@ import {
   Menu,
   Clock,
   AlertTriangle,
+  Lock,
+  LockOpen,
+  Trash2,
 } from "lucide-react";
 
 interface ProgramItem {
@@ -35,6 +40,8 @@ interface ProgramItem {
   pengadaanList: string[];
   isSelesai: boolean;
   isTerlambat: boolean;
+  isPlanningLocked: boolean;
+  status: string;
 }
 
 interface CreateProgramResponse {
@@ -199,6 +206,81 @@ export default function AdminProgramPage() {
     }
   };
 
+  const handleToggleLock = async (item: ProgramItem) => {
+    const isLocked = item.isPlanningLocked;
+    const result = await Swal.fire({
+      title: isLocked ? "Buka Kunci Planning?" : "Kunci Planning?",
+      text: isLocked
+        ? `Planning program "${item.namaProgram}" akan dibuka kembali`
+        : `Planning program "${item.namaProgram}" akan dikunci, staff tidak bisa mengubah plan`,
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonColor: isLocked ? "#16a34a" : "#f59e0b",
+      cancelButtonColor: "#6b7280",
+      confirmButtonText: isLocked ? "Buka Kunci" : "Kunci",
+      cancelButtonText: "Batal",
+    });
+    if (!result.isConfirmed) return;
+
+    try {
+      const token = getCookie("accessToken");
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_API}/master/program/${item.slug}/toggle-lock`,
+        {
+          method: "PATCH",
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.msg);
+      toast.success(json.msg);
+      fetchProgram();
+    } catch (err: any) {
+      toast.error(err.message || "Gagal mengubah status lock");
+    }
+  };
+
+  const handleDeleteACC = async (item: ProgramItem) => {
+    const result = await Swal.fire({
+      title: "Hapus Program?",
+      text: `Program "${item.namaProgram}" yang sudah diterima akan dihapus permanen`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#dc2626",
+      cancelButtonColor: "#6b7280",
+      confirmButtonText: "Ya, Hapus",
+      cancelButtonText: "Batal",
+    });
+    if (!result.isConfirmed) return;
+
+    try {
+      const token = getCookie("accessToken");
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_API}/master/program/${item.slug}/diterima`,
+        {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.msg);
+      Swal.fire({
+        icon: "success",
+        title: "Berhasil",
+        text: json.msg,
+        timer: 1500,
+        showConfirmButton: false,
+      });
+      fetchProgram();
+    } catch (err: any) {
+      Swal.fire({
+        icon: "error",
+        title: "Gagal",
+        text: err.message || "Gagal menghapus program",
+      });
+    }
+  };
+
   const formatRupiahCompact = (value: number) => {
     if (value >= 1_000_000_000_000)
       return `Rp ${(value / 1_000_000_000_000).toLocaleString("id-ID", { maximumFractionDigits: 1 })} Triliun`;
@@ -305,63 +387,109 @@ export default function AdminProgramPage() {
             {filteredProgram.map((item) => {
               const subSlug = slugify(item.namaProgram);
               return (
-                <Link
-                  key={item.id}
-                  href={`/monitoring-staff-master/${dinasId}/${slug}/${subSlug}`}
-                  className="block"
-                >
-                  <div className="relative bg-white rounded-3xl shadow-lg p-4 lg:p-5 hover:shadow-xl transition border-t-[12px] border-[#CB0E0E] flex flex-col cursor-pointer hover:scale-[1.02] duration-200 h-full min-h-[220px] sm:min-h-[240px]">
-                    {/* Atas: icon + badge status */}
-                    <div className="flex justify-between items-center mt-4 mb-4">
-                      <div className="bg-[#CB0E0E] w-11 h-11 lg:w-12 lg:h-12 rounded-2xl flex items-center justify-center text-white shadow">
-                        <BookOpen size={20} />
-                      </div>
+                <div key={item.id} className="relative group">
+                  {/* Action buttons — top right */}
+                  <div className="absolute top-3 right-3 z-10 flex gap-1.5 mt-2">
+                    {/* Lock / Unlock */}
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleToggleLock(item);
+                      }}
+                      title={
+                        item.isPlanningLocked
+                          ? "Buka Kunci Planning"
+                          : "Kunci Planning"
+                      }
+                      className={`p-1.5 rounded-lg border bg-white shadow-sm transition ${
+                        item.isPlanningLocked
+                          ? "text-amber-500 border-amber-300 hover:bg-amber-50"
+                          : "text-gray-500 border-gray-300 hover:bg-gray-100"
+                      }`}
+                    >
+                      {item.isPlanningLocked ? (
+                        <LockOpen size={13} />
+                      ) : (
+                        <Lock size={13} />
+                      )}
+                    </button>
 
-                      <div className="flex items-center gap-1.5">
-                        {/* Badge Terlambat */}
-                        {item.isTerlambat && (
-                          <div className="flex items-center gap-1 bg-orange-100 text-orange-600 px-2.5 py-1 rounded-full text-[10px] lg:text-xs shadow-sm">
-                            <AlertTriangle size={11} />
-                            Terlambat
-                          </div>
-                        )}
-
-                        {/* Badge Status */}
-                        {item.isSelesai ? (
-                          <div className="flex items-center gap-1.5 bg-green-100 text-green-700 px-2.5 py-1 rounded-full text-[10px] lg:text-xs shadow-sm">
-                            <Check size={12} />
-                            Selesai
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-1.5 bg-blue-100 text-blue-600 px-2.5 py-1 rounded-full text-[10px] lg:text-xs shadow-sm">
-                            <Clock size={12} />
-                            Aktif
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Konten */}
-                    <div className="flex-1">
-                      <h2 className="text-sm lg:text-base font-bold leading-snug mb-2 line-clamp-3">
-                        {item.namaProgram}
-                      </h2>
-                      <p className="text-[10px] lg:text-xs text-gray-500 line-clamp-2">
-                        METODE : {item.pengadaanList.join(", ")}
-                      </p>
-                    </div>
-
-                    {/* Footer: anggaran + arrow */}
-                    <div className="flex justify-between items-center mt-4">
-                      <p className="text-[#CB0E0E] text-sm lg:text-base font-bold">
-                        {formatRupiahCompact(Number(item.anggaran))}
-                      </p>
-                      <div className="w-6 h-6 lg:w-7 lg:h-7 rounded-full border border-gray-400 flex items-center justify-center shrink-0">
-                        <ArrowRight size={12} />
-                      </div>
-                    </div>
+                    {/* Delete */}
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleDeleteACC(item);
+                      }}
+                      title="Hapus program"
+                      className="p-1.5 rounded-lg border bg-white hover:bg-red-50 text-red-600 border-red-200 shadow-sm transition"
+                    >
+                      <Trash2 size={13} />
+                    </button>
                   </div>
-                </Link>
+
+                  <Link
+                    href={`/monitoring-staff-master/${dinasId}/${slug}/${subSlug}`}
+                    className="block"
+                  >
+                    <div className="relative bg-white rounded-3xl shadow-lg p-4 lg:p-5 hover:shadow-xl transition border-t-[12px] border-[#CB0E0E] flex flex-col cursor-pointer hover:scale-[1.02] duration-200 h-full min-h-[220px] sm:min-h-[240px]">
+                      {/* Atas: icon + badge */}
+                      <div className="flex justify-between items-center mt-4 mb-4">
+                        <div className="bg-[#CB0E0E] w-11 h-11 lg:w-12 lg:h-12 rounded-2xl flex items-center justify-center text-white shadow">
+                          <BookOpen size={20} />
+                        </div>
+
+                        <div className="flex items-center gap-1.5">
+                          {/* Badge Lock */}
+                          {item.isPlanningLocked && (
+                            <div className="flex items-center gap-1 bg-amber-100 text-amber-600 px-2.5 py-1 rounded-full text-[10px] lg:text-xs shadow-sm">
+                              <Lock size={10} />
+                              Terkunci
+                            </div>
+                          )}
+                          {/* Badge Terlambat */}
+                          {item.isTerlambat && (
+                            <div className="flex items-center gap-1 bg-orange-100 text-orange-600 px-2.5 py-1 rounded-full text-[10px] lg:text-xs shadow-sm">
+                              <AlertTriangle size={11} />
+                              Terlambat
+                            </div>
+                          )}
+                          {/* Badge Status */}
+                          {item.isSelesai ? (
+                            <div className="flex items-center gap-1.5 bg-green-100 text-green-700 px-2.5 py-1 rounded-full text-[10px] lg:text-xs shadow-sm">
+                              <Check size={12} /> Selesai
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1.5 bg-blue-100 text-blue-600 px-2.5 py-1 rounded-full text-[10px] lg:text-xs shadow-sm">
+                              <Clock size={12} /> Aktif
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Konten */}
+                      <div className="flex-1">
+                        <h2 className="text-sm lg:text-base font-bold leading-snug mb-2 line-clamp-3">
+                          {item.namaProgram}
+                        </h2>
+                        <p className="text-[10px] lg:text-xs text-gray-500 line-clamp-2">
+                          METODE : {item.pengadaanList.join(", ")}
+                        </p>
+                      </div>
+
+                      {/* Footer */}
+                      <div className="flex justify-between items-center mt-4">
+                        <p className="text-[#CB0E0E] text-sm lg:text-base font-bold">
+                          {formatRupiahCompact(Number(item.anggaran))}
+                        </p>
+                        <div className="w-6 h-6 lg:w-7 lg:h-7 rounded-full border border-gray-400 flex items-center justify-center shrink-0">
+                          <ArrowRight size={12} />
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                </div>
               );
             })}
           </div>
