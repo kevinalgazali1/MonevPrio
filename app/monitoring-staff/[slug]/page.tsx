@@ -32,11 +32,19 @@ interface ProgramItem {
   namaProgram: string;
   slug: string;
   anggaran: string;
+  tanggalMulai: string;
   createdAt: string;
-  pengadaanList: string[];
+  pengadaanList: {
+    id: number;
+    metode: string;
+    title: string;
+    anggaran: number;
+  }[];
   status: "menunggu" | "terima";
   isSelesai: boolean;
   isTerlambat: boolean;
+  tahapanSaatIni: string;
+  keteranganSaatIni: string | null;
 }
 
 interface CreateProgramResponse {
@@ -61,6 +69,9 @@ export default function StaffProgramPage() {
   const [openEdit, setOpenEdit] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
   const [editNamaProgram, setEditNamaProgram] = useState("");
+  const [editTanggalMulai, setEditTanggalMulai] = useState("");
+  const [editMetode, setEditMetode] = useState<SelectedMetode[]>([]);
+  const [submittingEdit, setSubmittingEdit] = useState(false);
 
   const params = useParams();
   const router = useRouter();
@@ -88,7 +99,9 @@ export default function StaffProgramPage() {
     }
   };
 
-  useEffect(() => { if (slug) fetchProgram(); }, [slug]);
+  useEffect(() => {
+    if (slug) fetchProgram();
+  }, [slug]);
 
   useEffect(() => {
     const fetchMetode = async () => {
@@ -98,18 +111,35 @@ export default function StaffProgramPage() {
     fetchMetode();
   }, []);
 
+  /* ── Tambah: metode handlers ── */
   const handleMetodeChange = (id: number) => {
-    setMetode((prev) => [...prev, { key: crypto.randomUUID(), pengadaanId: id, title: "", anggaran: "" }]);
+    setMetode((prev) => [
+      ...prev,
+      { key: crypto.randomUUID(), pengadaanId: id, title: "", anggaran: "" },
+    ]);
   };
-
   const handleMetodeRemove = (key: string) => {
     setMetode((prev) => prev.filter((m) => m.key !== key));
   };
-
   const handleMetodeUpdateItem = (key: string, field: "title" | "anggaran", value: string) => {
     setMetode((prev) => prev.map((m) => (m.key === key ? { ...m, [field]: value } : m)));
   };
 
+  /* ── Edit: metode handlers ── */
+  const handleEditMetodeChange = (id: number) => {
+    setEditMetode((prev) => [
+      ...prev,
+      { key: crypto.randomUUID(), pengadaanId: id, title: "", anggaran: "" },
+    ]);
+  };
+  const handleEditMetodeRemove = (key: string) => {
+    setEditMetode((prev) => prev.filter((m) => m.key !== key));
+  };
+  const handleEditMetodeUpdateItem = (key: string, field: "title" | "anggaran", value: string) => {
+    setEditMetode((prev) => prev.map((m) => (m.key === key ? { ...m, [field]: value } : m)));
+  };
+
+  /* ── Submit tambah ── */
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!namaProgram.trim()) { toast.error("Nama strong point wajib diisi"); return; }
@@ -138,43 +168,89 @@ export default function StaffProgramPage() {
       if (!res.ok) throw new Error();
       const json: CreateProgramResponse = await res.json();
       toast.success(json.msg);
-      setNamaProgram(""); setTanggalMulai(""); setMetode([]); setOpen(false);
+      setNamaProgram("");
+      setTanggalMulai("");
+      setMetode([]);
+      setOpen(false);
       fetchProgram();
-    } catch { toast.error("Terjadi kesalahan saat menyimpan program"); }
-    finally { setSubmitting(false); }
+    } catch {
+      toast.error("Terjadi kesalahan saat menyimpan program");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
+  /* ── Buka modal edit — populate dari data yang sudah ada ── */
   const handleOpenEdit = (item: ProgramItem) => {
-    setEditId(item.id); setEditNamaProgram(item.namaProgram); setOpenEdit(true);
+    setEditId(item.id);
+    setEditNamaProgram(item.namaProgram);
+    setEditTanggalMulai(item.tanggalMulai ? item.tanggalMulai.slice(0, 10) : "");
+    setEditMetode([]);
+    setOpenEdit(true);
   };
 
+  /* ── Submit edit ── */
   const handleEditSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!editNamaProgram.trim()) { toast.error("Nama program wajib diisi"); return; }
+    if (!editTanggalMulai) { toast.error("Tanggal mulai wajib diisi"); return; }
+    if (editMetode.length === 0) { toast.error("Pilih minimal satu metode pengadaan"); return; }
+    const invalidAnggaran = editMetode.some(
+      (m) => !m.anggaran || Number(m.anggaran.toString().replace(/\./g, "")) <= 0,
+    );
+    if (invalidAnggaran) { toast.error("Anggaran setiap metode harus diisi"); return; }
+
     try {
+      setSubmittingEdit(true);
       const token = getCookie("accessToken");
-      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_API}/staff/program/${editId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ namaProgram: editNamaProgram }),
-      });
+      const payload = {
+        namaProgram: editNamaProgram,
+        tanggalMulai: editTanggalMulai,
+        pengadaanList: editMetode.map((m) => ({
+          pengadaanId: m.pengadaanId,
+          title: m.title,
+          anggaran: Number(m.anggaran.toString().replace(/\./g, "")),
+        })),
+      };
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_API}/staff/program/${editId}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify(payload),
+        },
+      );
       if (!res.ok) throw new Error();
-      toast.success("Program berhasil diperbarui");
-      setOpenEdit(false); setEditId(null); fetchProgram();
-    } catch { toast.error("Gagal memperbarui program"); }
+      const json = await res.json();
+      toast.success(json.msg ?? "Program berhasil diperbarui");
+      setOpenEdit(false);
+      setEditId(null);
+      setEditMetode([]);
+      fetchProgram();
+    } catch {
+      toast.error("Gagal memperbarui program");
+    } finally {
+      setSubmittingEdit(false);
+    }
   };
 
   const handleDelete = async (id: number) => {
     const result = await Swal.fire({
-      title: "Hapus Program?", text: "Data program tidak dapat dikembalikan",
-      icon: "warning", showCancelButton: true,
-      confirmButtonColor: "#CB0E0E", cancelButtonColor: "#6B7280",
-      confirmButtonText: "Ya, Hapus", cancelButtonText: "Batal",
+      title: "Hapus Program?",
+      text: "Data program tidak dapat dikembalikan",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#CB0E0E",
+      cancelButtonColor: "#6B7280",
+      confirmButtonText: "Ya, Hapus",
+      cancelButtonText: "Batal",
     });
     if (!result.isConfirmed) return;
     try {
       const token = getCookie("accessToken");
       const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_API}/staff/program/${id}`, {
-        method: "DELETE", headers: { Authorization: `Bearer ${token}` },
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error();
       Swal.fire({ icon: "success", title: "Berhasil", text: "Program berhasil dihapus", timer: 1500, showConfirmButton: false });
@@ -241,7 +317,6 @@ export default function StaffProgramPage() {
           </div>
         </div>
 
-        {/* Divider mobile */}
         <hr className="sm:hidden mb-4 border-gray-300" />
 
         {/* ================= BACK BUTTON ================= */}
@@ -257,21 +332,17 @@ export default function StaffProgramPage() {
         {loading && <p className="text-gray-500 text-sm">Memuat data...</p>}
 
         {!loading && filteredProgram.length === 0 && (
-          <p className="text-gray-500 col-span-full text-center text-sm">
-            Program tidak ditemukan
-          </p>
+          <p className="text-gray-500 col-span-full text-center text-sm">Program tidak ditemukan</p>
         )}
 
         {!loading && filteredProgram.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4 lg:gap-6 text-black items-stretch">
             {filteredProgram.map((item) => {
               const isMenunggu = item.status === "menunggu";
-              // Icon terlambat hanya muncul jika terlambat DAN belum selesai
               const showTerlambat = item.isTerlambat && !item.isSelesai;
 
               return (
-                <div key={item.id} className="relative">
-                  {/* Edit & Delete — hanya saat menunggu */}
+                <div key={item.id} className="relative group">
                   {isMenunggu && (
                     <div className="absolute top-3 right-3 mt-2 flex gap-1.5 z-10">
                       <button
@@ -291,59 +362,56 @@ export default function StaffProgramPage() {
                     </div>
                   )}
 
-                  {/* Card */}
+                  {/* Tooltip nama program */}
+                  <div className="absolute -top-2 left-1/2 -translate-x-1/2 -translate-y-full z-20 hidden group-hover:block pointer-events-none">
+                    <div className="bg-gray-800 text-white text-xs px-3 py-2 rounded-lg shadow-lg w-max max-w-[260px] text-center leading-snug break-words">
+                      {item.namaProgram}
+                    </div>
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-800" />
+                  </div>
+
                   <Link
                     href={isMenunggu ? "#" : `/monitoring-staff/${slug}/${item.slug}`}
                     className={`block h-full ${isMenunggu ? "pointer-events-none cursor-not-allowed" : ""}`}
                   >
-                    <div className="relative bg-white rounded-3xl shadow-lg p-4 lg:p-5 hover:shadow-xl transition border-t-[12px] border-[#CB0E0E] flex flex-col cursor-pointer hover:scale-[1.02] duration-200 h-full min-h-[220px] sm:min-h-[240px]">
-
-                      {/* Icon terlambat — pojok kanan atas (hanya jika tidak menunggu agar tidak tumpuk dengan tombol edit/delete) */}
+                    <div
+                      className="relative bg-white rounded-3xl shadow-lg p-4 lg:p-5 hover:shadow-xl transition border-t-[12px] border-[#CB0E0E] flex flex-col cursor-pointer hover:scale-[1.02] duration-200 h-full min-h-[220px] sm:min-h-[240px]"
+                      title={item.namaProgram}
+                    >
                       {showTerlambat && !isMenunggu && (
-                        <div
-                          title="Program terlambat"
-                          className="absolute top-3 right-3 bg-yellow-400 rounded-full p-1 shadow"
-                        >
+                        <div title="Program terlambat" className="absolute top-3 right-3 bg-yellow-400 rounded-full p-1 shadow">
                           <AlertTriangle size={13} className="text-white" />
                         </div>
                       )}
 
-                      {/* Icon + Badge status */}
                       <div className="flex justify-between items-center mt-4 mb-4">
                         <div className="bg-[#CB0E0E] w-11 h-11 lg:w-12 lg:h-12 rounded-2xl flex items-center justify-center text-white shadow">
                           <BookOpen size={20} />
                         </div>
-
-                        {/* Prioritas badge: Selesai > Aktif > Menunggu */}
                         {item.isSelesai ? (
                           <div className="flex items-center gap-1.5 bg-green-100 text-green-700 px-2.5 py-1 rounded-full text-[10px] lg:text-xs shadow-sm">
-                            <Check size={12} />
-                            Selesai
+                            <Check size={12} /> Selesai
                           </div>
                         ) : item.status === "terima" ? (
                           <div className="flex items-center gap-1.5 bg-blue-100 text-blue-600 px-2.5 py-1 rounded-full text-[10px] lg:text-xs shadow-sm">
-                            <Clock size={12} />
-                            Aktif
+                            <Clock size={12} /> Aktif
                           </div>
                         ) : (
                           <div className="flex items-center gap-1.5 bg-yellow-100 text-yellow-700 px-2.5 py-1 rounded-full text-[10px] lg:text-xs shadow-sm">
-                            <Clock size={12} />
-                            Menunggu
+                            <Clock size={12} /> Menunggu
                           </div>
                         )}
                       </div>
 
-                      {/* Konten */}
                       <div className="flex-1">
                         <h2 className="text-sm lg:text-base font-bold leading-snug mb-2 line-clamp-3">
                           {item.namaProgram}
                         </h2>
                         <p className="text-[10px] lg:text-xs text-gray-500 line-clamp-2">
-                          METODE : {item.pengadaanList.join(", ")}
+                          METODE : {item.pengadaanList.map((p) => p.metode).join(", ")}
                         </p>
                       </div>
 
-                      {/* Footer */}
                       <div className="flex justify-between items-center mt-4">
                         <p className="text-[#CB0E0E] text-sm lg:text-base font-bold">
                           {formatRupiahCompact(Number(item.anggaran))}
@@ -381,9 +449,7 @@ export default function StaffProgramPage() {
                 <X size={18} />
               </button>
             </div>
-
             <hr className="my-5 sm:my-6 border-gray-300" />
-
             <form className="space-y-4 sm:space-y-5" onSubmit={handleSubmit}>
               <div>
                 <label className="text-sm text-gray-600">Nama Strong Point</label>
@@ -443,20 +509,27 @@ export default function StaffProgramPage() {
       {/* ================= MODAL EDIT ================= */}
       {openEdit && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 sm:p-6"
           onClick={() => setOpenEdit(false)}
         >
           <div
-            className="relative w-full max-w-sm sm:max-w-md bg-[#f2f2f2] rounded-2xl sm:rounded-3xl shadow-2xl p-6 sm:p-8 text-black border-t-8 sm:border-t-[16px] border-[#CB0E0E]"
+            className="relative w-full max-w-sm sm:max-w-md bg-[#f2f2f2] rounded-2xl sm:rounded-3xl shadow-2xl p-6 sm:p-8 text-black border-t-8 sm:border-t-[16px] border-[#CB0E0E] max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
+            style={{ animation: "modalIn 0.2s ease" }}
           >
-            <div className="flex justify-between items-center mb-5 sm:mb-6">
-              <h2 className="text-base sm:text-lg font-semibold">Edit Program</h2>
-              <button onClick={() => setOpenEdit(false)}><X size={18} /></button>
-            </div>
-            <form onSubmit={handleEditSubmit} className="space-y-4">
+            <div className="relative mt-4 sm:mt-8 flex justify-between items-start">
               <div>
-                <label className="text-sm text-gray-600">Nama Program</label>
+                <p className="text-sm font-semibold italic">EDIT PROGRAM</p>
+                <p className="text-xs text-gray-600">{formatNamaDinas(slug)}</p>
+              </div>
+              <button onClick={() => setOpenEdit(false)} className="text-gray-600 hover:text-black">
+                <X size={18} />
+              </button>
+            </div>
+            <hr className="my-5 sm:my-6 border-gray-300" />
+            <form className="space-y-4 sm:space-y-5" onSubmit={handleEditSubmit}>
+              <div>
+                <label className="text-sm text-gray-600">Nama Strong Point</label>
                 <input
                   type="text"
                   value={editNamaProgram}
@@ -464,19 +537,39 @@ export default function StaffProgramPage() {
                   className="w-full mt-2 px-4 py-2 rounded-lg bg-gray-200 outline-none focus:ring-2 focus:ring-red-500 text-sm"
                 />
               </div>
-              <div className="flex justify-end gap-3 pt-4">
+              <div>
+                <label className="text-sm text-gray-600">Tanggal Mulai</label>
+                <input
+                  type="date"
+                  value={editTanggalMulai}
+                  onChange={(e) => setEditTanggalMulai(e.target.value)}
+                  className="w-full mt-2 px-4 py-2 rounded-lg bg-gray-200 outline-none focus:ring-2 focus:ring-red-500 text-sm"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-gray-600">Metode Pengadaan</label>
+                <MultiSelectMetode
+                  options={metodeOptions}
+                  selected={editMetode}
+                  onChange={handleEditMetodeChange}
+                  onRemove={handleEditMetodeRemove}
+                  onUpdateItem={handleEditMetodeUpdateItem}
+                />
+              </div>
+              <div className="flex justify-between pt-4 sm:pt-6 gap-3">
                 <button
                   type="button"
                   onClick={() => setOpenEdit(false)}
-                  className="px-5 sm:px-6 py-2 rounded-lg bg-gray-300 hover:bg-gray-400 text-sm"
+                  className="flex-1 sm:flex-none bg-gray-300 text-gray-600 hover:bg-gray-400 px-6 sm:px-8 py-2 rounded-lg text-sm"
                 >
-                  Batal
+                  Batalkan
                 </button>
                 <button
                   type="submit"
-                  className="px-5 sm:px-6 py-2 rounded-lg bg-[#CB0E0E] text-white hover:bg-red-700 text-sm"
+                  disabled={submittingEdit}
+                  className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 sm:px-8 py-2 rounded-lg shadow text-white text-sm ${submittingEdit ? "bg-red-400 cursor-not-allowed" : "bg-[#CB0E0E] hover:bg-red-700"}`}
                 >
-                  Simpan
+                  {submittingEdit ? "Menyimpan..." : "Simpan Data"}
                 </button>
               </div>
             </form>

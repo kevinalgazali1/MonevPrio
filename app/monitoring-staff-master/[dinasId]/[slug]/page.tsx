@@ -23,6 +23,7 @@ import {
   X,
   Menu,
   Clock,
+  AlertTriangle,
 } from "lucide-react";
 
 interface ProgramItem {
@@ -315,17 +316,29 @@ export default function AdminProgramPage() {
                       <div className="bg-[#CB0E0E] w-11 h-11 lg:w-12 lg:h-12 rounded-2xl flex items-center justify-center text-white shadow">
                         <BookOpen size={20} />
                       </div>
-                      {item.isSelesai ? (
-                        <div className="flex items-center gap-1.5 bg-green-100 text-green-700 px-2.5 py-1 rounded-full text-[10px] lg:text-xs shadow-sm">
-                          <Check size={12} />
-                          Selesai
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-1.5 bg-blue-100 text-blue-600 px-2.5 py-1 rounded-full text-[10px] lg:text-xs shadow-sm">
-                          <Clock size={12} />
-                          Aktif
-                        </div>
-                      )}
+
+                      <div className="flex items-center gap-1.5">
+                        {/* Badge Terlambat */}
+                        {item.isTerlambat && (
+                          <div className="flex items-center gap-1 bg-orange-100 text-orange-600 px-2.5 py-1 rounded-full text-[10px] lg:text-xs shadow-sm">
+                            <AlertTriangle size={11} />
+                            Terlambat
+                          </div>
+                        )}
+
+                        {/* Badge Status */}
+                        {item.isSelesai ? (
+                          <div className="flex items-center gap-1.5 bg-green-100 text-green-700 px-2.5 py-1 rounded-full text-[10px] lg:text-xs shadow-sm">
+                            <Check size={12} />
+                            Selesai
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5 bg-blue-100 text-blue-600 px-2.5 py-1 rounded-full text-[10px] lg:text-xs shadow-sm">
+                            <Clock size={12} />
+                            Aktif
+                          </div>
+                        )}
+                      </div>
                     </div>
 
                     {/* Konten */}
