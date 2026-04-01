@@ -160,7 +160,7 @@ export default function GubernurProgramPage() {
               const showTerlambat = item.isTerlambat && !item.isSelesai;
 
               return (
-                <div key={item.id} className="relative group">
+                <div key={item.id} className="relative group h-full">
                   {/* Tooltip nama program */}
                   <div className="absolute -top-2 left-1/2 -translate-x-1/2 -translate-y-full z-20 hidden group-hover:block pointer-events-none">
                     <div className="bg-gray-800 text-white text-xs px-3 py-2 rounded-lg shadow-lg w-max max-w-[260px] text-center leading-snug break-words">
@@ -171,7 +171,7 @@ export default function GubernurProgramPage() {
                   <Link
                     key={item.id}
                     href={`/monitoring-gubernur/${slug}/${item.slug}`}
-                    className="block"
+                    className="block h-full"
                   >
                     <div className="relative bg-white rounded-3xl shadow-lg p-4 lg:p-5 hover:shadow-xl transition border-t-[12px] border-[#CB0E0E] flex flex-col cursor-pointer hover:scale-[1.02] duration-200 h-full min-h-[220px] sm:min-h-[240px]">
                       {/* Icon terlambat — pojok kanan atas */}

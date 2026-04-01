@@ -335,7 +335,6 @@ export default function AdminMonitoringProgramPage() {
               <p className="text-base sm:text-lg font-bold">
                 {loading ? "—" : `${totalTahapanSelesai} / ${totalTahapan}`}
               </p>
-              <p className="text-[10px] text-gray-400">Selesai / Total</p>
             </div>
           </div>
 
