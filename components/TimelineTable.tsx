@@ -9,6 +9,8 @@ import {
   Lock,
   MessageSquare,
   ChevronRight,
+  FileText,
+  ExternalLink,
 } from "lucide-react";
 import { getCookie } from "cookies-next";
 import toast from "react-hot-toast";
@@ -304,6 +306,19 @@ function getForecastVarianceDays(tahapan: Tahapan): number {
   return Math.round(delta / DAY_MS);
 }
 
+// ─── Extract filename from fileUrl ────────────────────────────────────────────
+
+function extractFileName(dokumen: any): string {
+  if (!dokumen) return "Dokumen";
+  const url: string =
+    typeof dokumen === "string" ? dokumen : (dokumen.fileUrl ?? "");
+  if (!url) return "Dokumen";
+  const parts = url.split("/");
+  const raw = parts[parts.length - 1] ?? "Dokumen";
+  // Remove leading timestamp prefix like "1720000000000_" if present
+  return raw.replace(/^\d+_/, "");
+}
+
 // ─── Modal Shell ───────────────────────────────────────────────────────────────
 
 function ModalShell({
@@ -385,6 +400,116 @@ function LastUpdateBadge({
         )}
       </span>
     </div>
+  );
+}
+
+// ─── Dokumen Bukti Modal ───────────────────────────────────────────────────────
+
+function DokumenBuktiModal({
+  namaTahapan,
+  dokumenBukti,
+  onClose,
+}: {
+  namaTahapan: string;
+  dokumenBukti: any[];
+  onClose: () => void;
+}) {
+  function openDocument(dokumen: any) {
+    const url: string =
+      typeof dokumen === "string" ? dokumen : (dokumen.fileUrl ?? "");
+    if (!url) {
+      toast.error("URL dokumen tidak tersedia");
+      return;
+    }
+    window.open(`https://sulsel.cloud${url}`, "_blank");
+  }
+
+  return (
+    <ModalShell onClose={onClose} accentColor="#3b82f6" width="w-[480px]">
+      <div className="px-7 pt-6 pb-7">
+        <ModalHeader
+          title="DOKUMEN BUKTI"
+          subtitle={namaTahapan}
+          onClose={onClose}
+        />
+
+        <div className="flex items-center gap-2 mb-4">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 border border-blue-200 rounded-full text-xs font-semibold text-blue-600">
+            <FileText size={11} />
+            {dokumenBukti.length} dokumen tersimpan
+          </span>
+        </div>
+
+        <ol className="space-y-2">
+          {dokumenBukti.map((dokumen, idx) => {
+            const fileName = extractFileName(dokumen);
+            const isLatest = idx === dokumenBukti.length - 1;
+            return (
+              <li
+                key={idx}
+                className={`flex items-center gap-3 p-3 rounded-xl border transition-colors ${
+                  isLatest
+                    ? "bg-blue-50 border-blue-200"
+                    : "bg-gray-50 border-gray-100"
+                }`}
+              >
+                {/* Nomor urut */}
+                <span
+                  className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                    isLatest
+                      ? "bg-blue-500 text-white"
+                      : "bg-gray-200 text-gray-500"
+                  }`}
+                >
+                  {idx + 1}
+                </span>
+
+                {/* Ikon file */}
+                <FileText
+                  size={16}
+                  className={`shrink-0 ${isLatest ? "text-blue-400" : "text-gray-400"}`}
+                />
+
+                {/* Nama file */}
+                <div className="min-w-0 flex-1">
+                  <p
+                    className={`text-xs font-medium truncate ${isLatest ? "text-blue-900" : "text-gray-700"}`}
+                    title={fileName}
+                  >
+                    {fileName}
+                  </p>
+                  {isLatest && (
+                    <p className="text-[9px] text-blue-400 mt-0.5 font-semibold">
+                      Upload terbaru
+                    </p>
+                  )}
+                </div>
+
+                {/* Tombol buka */}
+                <button
+                  onClick={() => openDocument(dokumen)}
+                  className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all active:scale-95 ${
+                    isLatest
+                      ? "bg-blue-500 text-white hover:bg-blue-600"
+                      : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-100"
+                  }`}
+                >
+                  <ExternalLink size={11} />
+                  Buka
+                </button>
+              </li>
+            );
+          })}
+        </ol>
+
+        <button
+          onClick={onClose}
+          className="mt-6 w-full py-2.5 rounded-xl text-sm font-semibold text-gray-500 bg-gray-100 hover:bg-gray-200 transition-colors"
+        >
+          TUTUP
+        </button>
+      </div>
+    </ModalShell>
   );
 }
 
@@ -1017,19 +1142,6 @@ function UpdateModal({
 
 type ModalType = "plan" | "update";
 
-async function handleOpenPDF(dokumenBukti: any[]) {
-  if (!dokumenBukti || dokumenBukti.length === 0) {
-    toast.error("Dokumen belum tersedia");
-    return;
-  }
-  const token = getCookie("accessToken");
-  if (!token) {
-    toast.error("Session habis, silakan login ulang");
-    return;
-  }
-  window.open(`https://sulsel.cloud${dokumenBukti[0].fileUrl}`, "_blank");
-}
-
 export default function TimelineTable({
   namaProgram = "Program",
   pengadaanList = [],
@@ -1047,6 +1159,12 @@ export default function TimelineTable({
   const [keteranganModal, setKeteranganModal] = useState<{
     namaTahapan: string;
     keteranganList: KeteranganItem[];
+  } | null>(null);
+
+  // ── State: dokumen bukti modal ─────────────────────────────────────────────
+  const [dokumenModal, setDokumenModal] = useState<{
+    namaTahapan: string;
+    dokumenBukti: any[];
   } | null>(null);
 
   const [lockedTahapan, setLockedTahapan] = useState<Set<number>>(new Set());
@@ -1441,6 +1559,9 @@ export default function TimelineTable({
                             ? `Forecast: ${formatDisplayDate(fcMulai)} → ${formatDisplayDate(fcSelesai)}${varianceDays !== 0 ? ` (variance: ${varianceDays > 0 ? "+" : ""}${varianceDays} hari)` : ""}`
                             : "";
 
+                        const hasDokumen =
+                          !!tahapan.progres.dokumenBukti?.length;
+
                         return (
                           <tr
                             key={tahapan.idTahapan}
@@ -1517,19 +1638,33 @@ export default function TimelineTable({
                                       )}
                                   </div>
                                   <div className="flex gap-1 mt-2 flex-wrap">
+                                    {/* ── Tombol PDF: buka modal daftar dokumen ── */}
                                     <button
                                       onClick={() =>
-                                        handleOpenPDF(
-                                          tahapan.progres.dokumenBukti,
-                                        )
+                                        hasDokumen
+                                          ? setDokumenModal({
+                                              namaTahapan: tahapan.namaTahapan,
+                                              dokumenBukti:
+                                                tahapan.progres.dokumenBukti,
+                                            })
+                                          : toast.error(
+                                              "Belum ada dokumen yang diupload",
+                                            )
                                       }
-                                      disabled={
-                                        !tahapan.progres.dokumenBukti?.length
-                                      }
-                                      className={`px-2 py-0.5 text-[10px] border rounded-full shadow-sm ${tahapan.progres.dokumenBukti?.length ? "border-gray-300 text-black hover:bg-gray-50" : "border-gray-200 text-gray-400 cursor-not-allowed"}`}
+                                      className={`px-2 py-0.5 text-[10px] border rounded-full shadow-sm transition-all ${
+                                        hasDokumen
+                                          ? "border-gray-300 text-black hover:bg-gray-50 active:scale-95"
+                                          : "border-gray-200 text-gray-400 cursor-not-allowed"
+                                      }`}
                                     >
                                       PDF
+                                      {hasDokumen && (
+                                        <span className="ml-1 bg-gray-200 text-gray-600 rounded-full px-1 text-[9px] font-bold">
+                                          {tahapan.progres.dokumenBukti.length}
+                                        </span>
+                                      )}
                                     </button>
+
                                     {canEditTimeline && !isLocked && (
                                       <>
                                         <button
@@ -1820,7 +1955,7 @@ export default function TimelineTable({
         )}
       </div>
 
-      {/* Modals */}
+      {/* ── Modals ── */}
       {modal?.type === "plan" && (
         <PlanModal
           tahapan={modal.tahapan}
@@ -1836,12 +1971,20 @@ export default function TimelineTable({
           prevTahapanAktualSelesai={modal.prevTahapanAktualSelesai}
         />
       )}
-
       {keteranganModal && (
         <KeteranganModal
           namaTahapan={keteranganModal.namaTahapan}
           keteranganList={keteranganModal.keteranganList}
           onClose={() => setKeteranganModal(null)}
+        />
+      )}
+
+      {/* ── Dokumen Bukti Modal (baru) ── */}
+      {dokumenModal && (
+        <DokumenBuktiModal
+          namaTahapan={dokumenModal.namaTahapan}
+          dokumenBukti={dokumenModal.dokumenBukti}
+          onClose={() => setDokumenModal(null)}
         />
       )}
     </>
