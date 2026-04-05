@@ -385,7 +385,6 @@ export default function AdminProgramPage() {
         {!loading && filteredProgram.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-4 lg:gap-6 text-black items-stretch">
             {filteredProgram.map((item) => {
-              const subSlug = slugify(item.namaProgram);
               return (
                 <div key={item.id} className="relative group h-full">
                   {/* Tooltip nama program */}
@@ -437,7 +436,7 @@ export default function AdminProgramPage() {
                   </div>
 
                   <Link
-                    href={`/monitoring-staff-master/${dinasId}/${slug}/${subSlug}`}
+                    href={`/monitoring-staff-master/${dinasId}/${slug}/${item.slug}`}
                     className="block h-full"
                   >
                     <div className="relative bg-white rounded-3xl shadow-lg p-4 lg:p-5 hover:shadow-xl transition border-t-[12px] border-[#CB0E0E] flex flex-col cursor-pointer hover:scale-[1.02] duration-200 h-full min-h-[220px] sm:min-h-[240px]">

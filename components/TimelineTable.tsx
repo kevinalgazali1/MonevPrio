@@ -1510,11 +1510,16 @@ export default function TimelineTable({
                               cells[i].forecast = true;
                         }
 
-                        const prevTahapanSelesai =
-                          tahapanIdx > 0
-                            ? (pengadaan.tahapanList[tahapanIdx - 1]?.progres
-                                .planningTanggalSelesai ?? null)
-                            : null;
+                        const prevTahapanSelesai = (() => {
+                          const originalList =
+                            pengadaanList.find((p) => p.id === pengadaan.id)
+                              ?.tahapanList ?? pengadaan.tahapanList;
+                          const prev =
+                            originalList
+                              .filter((t) => t.noUrut < tahapan.noUrut)
+                              .sort((a, b) => b.noUrut - a.noUrut)[0] ?? null;
+                          return prev?.progres.planningTanggalSelesai ?? null;
+                        })();
 
                         const prevTahapanAktualSelesai = (() => {
                           if (tahapanIdx === 0) return null;
@@ -1712,15 +1717,41 @@ export default function TimelineTable({
                                                       b.noUrut - a.noUrut,
                                                   )[0] ?? null);
 
-                                          const isPrevLocked =
-                                            tahapanIdx === 0 ||
-                                            !prevTahapanItem ||
-                                            prevTahapanItem.progres.status ===
-                                              "selesai" ||
-                                            !!prevTahapanItem.isLocked ||
-                                            lockedTahapan.has(
-                                              prevTahapanItem.idTahapan,
+                                          const isPrevLocked = (() => {
+                                            const originalList =
+                                              pengadaanList.find(
+                                                (p) => p.id === pengadaan.id,
+                                              )?.tahapanList ??
+                                              pengadaan.tahapanList;
+
+                                            const isFirstTahapan =
+                                              originalList.every(
+                                                (t) =>
+                                                  t.noUrut >= tahapan.noUrut,
+                                              );
+
+                                            if (isFirstTahapan) return true;
+
+                                            const prevTahapanItem =
+                                              originalList
+                                                .filter(
+                                                  (t) =>
+                                                    t.noUrut < tahapan.noUrut,
+                                                )
+                                                .sort(
+                                                  (a, b) => b.noUrut - a.noUrut,
+                                                )[0] ?? null;
+
+                                            return (
+                                              !prevTahapanItem ||
+                                              prevTahapanItem.progres.status ===
+                                                "selesai" ||
+                                              !!prevTahapanItem.isLocked ||
+                                              lockedTahapan.has(
+                                                prevTahapanItem.idTahapan,
+                                              )
                                             );
+                                          })();
 
                                           return (
                                             <button
